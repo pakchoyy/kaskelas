@@ -64,11 +64,11 @@ export function DashboardPage() {
     >
       <div className="grid gap-3">
         <InfoCard title="Saldo Kelas" value={formatCurrency(metrics.saldo)} tone="brand">
-          <p className="text-sm text-slate-500">
-            {metrics.totalStudents > 0
-              ? `Data dihitung dari ${metrics.totalStudents} siswa dan cache lokal.`
-              : 'Belum ada data siswa yang tersimpan.'}
-          </p>
+            <p className="text-sm text-slate-500">
+              {metrics.totalStudents > 0
+                ? `Ringkasan dari ${metrics.totalStudents} siswa.`
+                : 'Belum ada data siswa.'}
+            </p>
         </InfoCard>
 
         <div className="grid grid-cols-2 gap-3">
@@ -80,13 +80,13 @@ export function DashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">5 Transaksi Terkini</p>
-              <p className="mt-1 text-sm text-slate-500">Berbasis checklist kas yang sudah tersimpan.</p>
+              <p className="mt-1 text-sm text-slate-500">5 transaksi terbaru dari kas dan keuangan.</p>
             </div>
           </div>
 
           {metrics.recentTransactions.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
-              Belum ada transaksi kas yang tersimpan.
+              Belum ada transaksi.
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">

@@ -55,7 +55,7 @@ export function RecapPage() {
   return (
     <PageShell
       title="Rekap"
-      description="Ringkasan saldo kelas dan tabel per siswa dibaca dari cache lokal."
+      description="Ringkasan saldo kelas dan tabel per siswa."
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
@@ -78,7 +78,7 @@ export function RecapPage() {
 
               if (refreshed) {
                 setRefreshState('success');
-                setRefreshMessage(settings.webAppUrl.trim() ? 'Data berhasil di-refresh dari Spreadsheet.' : 'Data di-refresh dari cache lokal.');
+                setRefreshMessage(settings.webAppUrl.trim() ? 'Data berhasil di-refresh dari Spreadsheet.' : 'Data di-refresh dari penyimpanan perangkat.');
                 return;
               }
 

@@ -138,7 +138,7 @@ export function SettingsPage() {
                     : 'bg-slate-50 text-slate-600'
               }`}
             >
-              {connectionMessage || 'Pengaturan disimpan lokal ke localStorage terlebih dahulu.'}
+              {connectionMessage || 'Pengaturan tersimpan.'}
             </div>
           </div>
         </div>

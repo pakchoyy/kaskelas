@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { extractFinanceRows, readExcelRows } from '../lib/excel';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate, todayIsoDate } from '../lib/date';
 
@@ -29,6 +31,9 @@ export function FinancePage() {
   const [draftNominal, setDraftNominal] = useState('');
   const [draftNote, setDraftNote] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredRecords = useMemo(() => {
     return financeRecords
@@ -111,10 +116,34 @@ export function FinancePage() {
     setActiveTransactionId(null);
   };
 
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const rows = await readExcelRows(file);
+      const parsed = extractFinanceRows(rows);
+
+      if (parsed.length === 0) {
+        setImportMessage('Tidak ada baris valid. Pastikan kolom Tanggal, Tipe, Nominal, Keterangan terisi.');
+        return;
+      }
+
+      parsed.forEach((row) => addFinanceTransaction(row.type, row.date, row.nominal, row.note));
+      setImportMessage(`${parsed.length} transaksi berhasil diimpor.`);
+    } catch {
+      setImportMessage('Gagal membaca file. Gunakan format .xlsx atau .csv.');
+    }
+  };
+
   return (
     <PageShell
       title="Keuangan"
-      description="Pemasukan lain dan pengeluaran dicatat lokal lalu siap disiapkan untuk sinkronisasi."
+      description="Catat pemasukan lain dan pengeluaran kelas."
     >
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-4 shadow-soft">
@@ -149,13 +178,26 @@ export function FinancePage() {
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Daftar transaksi</p>
               <p className="mt-1 text-sm text-slate-500">Tab aktif: {activeTab}</p>
             </div>
-            <button
-              type="button"
-              onClick={openCreateSheet}
-              className="h-11 rounded-2xl bg-brand-600 px-4 text-sm font-semibold text-white"
-            >
-              + Tambah
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setImportMessage('');
+                  setImportOpen(true);
+                }}
+                className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+              >
+                <Upload className="h-4 w-4" strokeWidth={2} />
+                Import
+              </button>
+              <button
+                type="button"
+                onClick={openCreateSheet}
+                className="h-11 rounded-2xl bg-brand-600 px-4 text-sm font-semibold text-white"
+              >
+                + Tambah
+              </button>
+            </div>
           </div>
         </div>
 
@@ -277,12 +319,40 @@ export function FinancePage() {
       <ConfirmDialog
         open={deleteOpen}
         title="Hapus transaksi"
-        description={`Hapus transaksi ${activeTransaction?.note ?? 'ini'}? Data akan dihapus dari cache lokal.`}
+        description={`Hapus transaksi ${activeTransaction?.note ?? 'ini'}? Data akan dihapus.`}
         confirmLabel="Hapus"
         destructive
         onConfirm={handleDelete}
         onCancel={() => setDeleteOpen(false)}
       />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={handleImportFile}
+      />
+
+      <BottomSheet
+        open={importOpen}
+        title="Import Transaksi dari Excel"
+        description="File .xlsx atau .csv dengan kolom Tanggal, Tipe, Nominal, Keterangan."
+        onClose={() => setImportOpen(false)}
+      >
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700"
+          >
+            <Upload className="h-5 w-5" strokeWidth={2} />
+            Pilih File Excel
+          </button>
+
+          {importMessage ? <p className="text-sm text-slate-600">{importMessage}</p> : null}
+        </div>
+      </BottomSheet>
     </PageShell>
   );
 }

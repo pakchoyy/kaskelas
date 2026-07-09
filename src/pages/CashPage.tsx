@@ -46,7 +46,7 @@ export function CashPage() {
   return (
     <PageShell
       title="Kas"
-      description="Checklist kas harian Senin–Kamis dengan simpan lokal terlebih dahulu."
+      description="Checklist kas harian untuk Senin–Kamis."
     >
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-4 shadow-soft">
@@ -146,7 +146,7 @@ export function CashPage() {
         </div>
 
         <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
-          Tersimpan lokal untuk tanggal {formatShortDisplayDate(activeDate)}.
+          Tersimpan untuk tanggal {formatShortDisplayDate(activeDate)}.
         </div>
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
