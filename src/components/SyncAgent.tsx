@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { loadAppSettings } from '../lib/appSettings';
 import { loadCashRecords, loadFinanceRecords, loadStudents } from '../lib/appData';
-import { APP_DATA_UPDATED_EVENT, SYNC_REQUEST_EVENT } from '../lib/events';
+import { APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT, SYNC_REQUEST_EVENT } from '../lib/events';
 import { requestSync, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
 import {
   pingAppsScript,
@@ -78,7 +78,7 @@ export function SyncAgent() {
     const initialSettings = loadAppSettings();
     if (initialSettings.webAppUrl.trim()) {
       didInitialSyncRef.current = true;
-      void performSync();
+      window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
     }
 
     return () => {

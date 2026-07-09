@@ -14,7 +14,7 @@ import {
   type CashDateRecord,
   type Student,
 } from '../lib/appData';
-import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
+import { dispatchAppEvent, APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT } from '../lib/events';
 import { setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
 import { fetchAppsScriptData } from '../services/appsScript';
 import { loadAppSettings } from '../lib/appSettings';
@@ -84,6 +84,12 @@ export function useAppData() {
 
   useEffect(() => {
     isHydratedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    const handler = () => { void refreshFromSpreadsheet(); };
+    window.addEventListener(REFRESH_SPREADSHEET_EVENT, handler);
+    return () => window.removeEventListener(REFRESH_SPREADSHEET_EVENT, handler);
   }, []);
 
   const actions = useMemo(() => {
