@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { InstallBanner } from '../components/InstallBanner';
 import { SyncAgent } from '../components/SyncAgent';
 import { SyncBadge } from '../components/SyncBadge';
 import { useAppSettings } from '../hooks/useAppSettings';
@@ -54,6 +55,8 @@ export function AppLayout() {
               </div>
           </div>
         </header>
+
+        <InstallBanner />
 
         <main className="flex-1 overflow-y-auto px-4 py-4 pb-28">
           <Outlet />
