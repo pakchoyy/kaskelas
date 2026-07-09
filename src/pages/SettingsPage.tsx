@@ -1,12 +1,15 @@
+import { Download, Smartphone } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { useState } from 'react';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 import { requestSync } from '../lib/sync';
 
 type ConnectionState = 'idle' | 'testing' | 'success' | 'error';
 
 export function SettingsPage() {
   const { settings, setSettings } = useAppSettings();
+  const { canInstall, install } = usePwaInstall();
   const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
   const [connectionMessage, setConnectionMessage] = useState('');
 
@@ -142,6 +145,33 @@ export function SettingsPage() {
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
           Data pengaturan ini akan dipakai untuk sinkronisasi ke Google Apps Script.
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 shadow-soft">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+              <Smartphone className="h-5 w-5" strokeWidth={2} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Pasang sebagai aplikasi</p>
+              <p className="text-xs text-slate-500">Buka cepat dari layar utama HP, bisa dipakai offline.</p>
+            </div>
+          </div>
+
+          {canInstall ? (
+            <button
+              type="button"
+              onClick={() => void install()}
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"
+            >
+              <Download className="h-5 w-5" strokeWidth={2} />
+              Install Aplikasi
+            </button>
+          ) : (
+            <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+              Tombol install muncul otomatis dari browser, atau buka menu browser → “Pasang aplikasi” / “Add to Home Screen”.
+            </p>
+          )}
         </div>
       </div>
     </PageShell>

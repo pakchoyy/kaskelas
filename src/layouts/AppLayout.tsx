@@ -1,4 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { SyncAgent } from '../components/SyncAgent';
 import { SyncBadge } from '../components/SyncBadge';
@@ -18,32 +19,39 @@ export function AppLayout() {
         <SyncAgent />
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-brand-600">
-                Bantu Guru Yuk
-              </p>
-              <h1 className="mt-1 text-base font-semibold text-slate-900 truncate">
-                {settings.className?.trim() || 'Kas Kelas'}
-              </h1>
-              <p className="truncate text-xs text-slate-500">
-                {settings.schoolYear?.trim() || 'Siap sinkron ke Spreadsheet'}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <SyncBadge syncState={syncState} onClick={requestSync} />
-              <button
-                type="button"
-                aria-label="Buka pengaturan"
-                onClick={() => navigate('/settings')}
-                className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
-                  location.pathname === '/settings'
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-slate-200 bg-white text-slate-600'
-                }`}
-              >
-                <span className="text-lg">⚙️</span>
-              </button>
-            </div>
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src="/guru-cibisd2.png"
+                  alt="Logo Kas Kelas"
+                  className="h-10 w-10 shrink-0 rounded-2xl shadow-soft"
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-brand-600">
+                    Bantu Guru Yuk
+                  </p>
+                  <h1 className="mt-1 truncate text-base font-semibold text-slate-900">
+                    {settings.className?.trim() || 'Kas Kelas'}
+                  </h1>
+                  <p className="truncate text-xs text-slate-500">
+                    {settings.schoolYear?.trim() || 'Siap sinkron ke Spreadsheet'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <SyncBadge syncState={syncState} onClick={requestSync} />
+                <button
+                  type="button"
+                  aria-label="Buka pengaturan"
+                  onClick={() => navigate('/settings')}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
+                    location.pathname === '/settings'
+                      ? 'border-brand-500 bg-brand-50 text-brand-700'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  <SettingsIcon className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </div>
           </div>
         </header>
 

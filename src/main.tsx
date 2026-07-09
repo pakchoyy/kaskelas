@@ -9,3 +9,10 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <RouterProvider router={router} />
   </React.StrictMode>,
 );
+
+const splash = document.getElementById('app-splash');
+if (splash) {
+  splash.style.opacity = '0';
+  splash.style.transition = 'opacity 240ms ease';
+  window.setTimeout(() => splash.remove(), 260);
+}

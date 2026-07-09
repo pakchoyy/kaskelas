@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Check } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
@@ -127,14 +128,14 @@ export function CashPage() {
                         </p>
                       </div>
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
                           checked
                             ? 'border-brand-500 bg-brand-500 text-white'
                             : 'border-slate-300 bg-white text-transparent'
                         }`}
                         aria-hidden="true"
                       >
-                        ✓
+                        {checked ? <Check className="h-5 w-5" strokeWidth={3} /> : null}
                       </div>
                     </button>
                   </li>

@@ -1,3 +1,4 @@
+import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import type { SyncState } from '../lib/sync';
 
 type SyncBadgeProps = {
@@ -20,7 +21,8 @@ export function SyncBadge({ syncState, onClick }: SyncBadgeProps) {
         ? 'border-amber-200 bg-amber-50 text-amber-700'
         : 'border-rose-200 bg-rose-50 text-rose-700';
 
-  const icon = syncState.status === 'synced' ? '✓' : syncState.status === 'pending' ? '⏳' : '✗';
+  const Icon =
+    syncState.status === 'synced' ? CheckCircle2 : syncState.status === 'pending' ? Clock : XCircle;
 
   return (
     <button
@@ -29,7 +31,7 @@ export function SyncBadge({ syncState, onClick }: SyncBadgeProps) {
       className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${toneClass}`}
       title={syncState.lastError || 'Tap untuk sinkronisasi manual'}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon className="h-4 w-4" strokeWidth={2} />
       <span>{label}</span>
     </button>
   );
