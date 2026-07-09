@@ -5,33 +5,49 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+let sharedPromptEvent: BeforeInstallPromptEvent | null = null;
+
+const listeners = new Set<(event: BeforeInstallPromptEvent | null) => void>();
+
+function notifyListeners() {
+  for (const listener of listeners) {
+    listener(sharedPromptEvent);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (event: Event) => {
+    event.preventDefault();
+    sharedPromptEvent = event as BeforeInstallPromptEvent;
+    notifyListeners();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    sharedPromptEvent = null;
+    notifyListeners();
+  });
+}
+
 export function usePwaInstall() {
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(sharedPromptEvent);
 
   useEffect(() => {
-    const handler = (event: Event) => {
-      event.preventDefault();
-      setPromptEvent(event as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
+    const handler = (event: BeforeInstallPromptEvent | null) => setPromptEvent(event);
+    listeners.add(handler);
+    return () => { listeners.delete(handler); };
   }, []);
 
   const install = useCallback(async () => {
-    if (!promptEvent) {
-      return false;
-    }
+    const event = sharedPromptEvent;
+    if (!event) return false;
 
-    await promptEvent.prompt();
-    const choice = await promptEvent.userChoice;
-    setPromptEvent(null);
+    await event.prompt();
+    const choice = await event.userChoice;
+    sharedPromptEvent = null;
+    notifyListeners();
 
     return choice.outcome === 'accepted';
-  }, [promptEvent]);
+  }, []);
 
   return {
     canInstall: promptEvent !== null,
