@@ -169,7 +169,7 @@ export function SettingsPage() {
             </button>
           ) : (
             <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Tombol install juga muncul otomatis di atas layar. Atau buka menu browser → “Pasang aplikasi”.
+              Pemasangan belum tersedia di sesi ini.
             </p>
           )}
         </div>

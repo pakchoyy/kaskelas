@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['guru-cibisd2.png', 'apple-touch-icon.png'],
+      includeAssets: ['guru-cibisd2.png', 'apple-touch-icon.png', 'template-siswa.xlsx', 'template-keuangan.xlsx'],
       manifest: {
         name: 'Bantu Guru Yuk - Kas Kelas',
         short_name: 'Kas Kelas',

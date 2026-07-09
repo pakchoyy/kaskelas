@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
@@ -215,6 +215,15 @@ export function StudentsPage() {
               <Upload className="h-5 w-5" strokeWidth={2} />
               Pilih File Excel
             </button>
+
+            <a
+              href="/template-siswa.xlsx"
+              download
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"
+            >
+              <Download className="h-5 w-5" strokeWidth={2} />
+              Unduh Template
+            </a>
 
             {importMessage ? <p className="text-sm text-slate-600">{importMessage}</p> : null}
           </div>

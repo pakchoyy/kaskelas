@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
@@ -340,18 +340,27 @@ export function FinancePage() {
         description="File .xlsx atau .csv dengan kolom Tanggal, Tipe, Nominal, Keterangan."
         onClose={() => setImportOpen(false)}
       >
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700"
-          >
-            <Upload className="h-5 w-5" strokeWidth={2} />
-            Pilih File Excel
-          </button>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700"
+            >
+              <Upload className="h-5 w-5" strokeWidth={2} />
+              Pilih File Excel
+            </button>
 
-          {importMessage ? <p className="text-sm text-slate-600">{importMessage}</p> : null}
-        </div>
+            <a
+              href="/template-keuangan.xlsx"
+              download
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"
+            >
+              <Download className="h-5 w-5" strokeWidth={2} />
+              Unduh Template
+            </a>
+
+            {importMessage ? <p className="text-sm text-slate-600">{importMessage}</p> : null}
+          </div>
       </BottomSheet>
     </PageShell>
   );
