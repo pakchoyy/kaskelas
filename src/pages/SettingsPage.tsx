@@ -1,6 +1,6 @@
 import { Download, Smartphone } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { requestSync } from '../lib/sync';
@@ -12,6 +12,11 @@ export function SettingsPage() {
   const { canInstall, install } = usePwaInstall();
   const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
   const [connectionMessage, setConnectionMessage] = useState('');
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
 
   const handleTestConnection = async () => {
     const url = settings.webAppUrl.trim();
@@ -167,9 +172,13 @@ export function SettingsPage() {
               <Download className="h-5 w-5" strokeWidth={2} />
               Install Aplikasi
             </button>
+          ) : isStandalone ? (
+            <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-700">
+              Aplikasi sudah terpasang.
+            </p>
           ) : (
             <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Pemasangan belum tersedia di sesi ini.
+              Buka halaman ini lewat Chrome di HP, lalu install dari tombol di atas.
             </p>
           )}
         </div>

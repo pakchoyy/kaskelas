@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 
@@ -6,30 +6,7 @@ const DISMISS_KEY = 'bgy-install-banner-dismissed';
 
 export function InstallBanner() {
   const { canInstall, install } = usePwaInstall();
-  const [dismissed, setDismissed] = useState(false);
-  const autoPromptedRef = useRef(false);
-
-  useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
-  }, []);
-
-  useEffect(() => {
-    if (!canInstall || dismissed || autoPromptedRef.current) {
-      return;
-    }
-
-    autoPromptedRef.current = true;
-    const timer = window.setTimeout(() => {
-      void install().then((accepted) => {
-        if (accepted) {
-          setDismissed(true);
-          localStorage.setItem(DISMISS_KEY, '1');
-        }
-      });
-    }, 1500);
-
-    return () => window.clearTimeout(timer);
-  }, [canInstall, dismissed, install]);
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1');
 
   if (!canInstall || dismissed) {
     return null;
