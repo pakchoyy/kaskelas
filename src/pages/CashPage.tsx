@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Save, CheckCheck } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
@@ -45,26 +45,12 @@ function formatWeekRange(weekDates: Record<WeekDayKey, string>): string {
   return `${formatDisplayDate(weekDates.senin)} - ${formatDisplayDate(weekDates.kamis)}`;
 }
 
-function getIsoWeekNumber(dateIso: string): number {
-  const date = new Date(`${dateIso}T00:00:00`);
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  return (
-    1 +
-    Math.round(
-      ((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7,
-    )
-  );
-}
-
 export function CashPage() {
   const { students, cashRecords, setCheckedStudents, saveCurrentState } = useAppData();
   const { settings } = useAppSettings();
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
 
   const weekDates = useMemo(() => getWeekDates(anchorDate), [anchorDate]);
-  const weekNumber = useMemo(() => getIsoWeekNumber(weekDates.senin), [weekDates.senin]);
   const isCurrentWeek = useMemo(() => {
     const todayWeek = getWeekDates(todayIsoDate());
     return weekDates.senin === todayWeek.senin;
@@ -78,9 +64,7 @@ export function CashPage() {
         rabu: cashRecords[weekDates.rabu]?.checkedStudentIds.includes(student.id) ?? false,
         kamis: cashRecords[weekDates.kamis]?.checkedStudentIds.includes(student.id) ?? false,
       };
-
       const paidCount = Object.values(checkedByDay).filter(Boolean).length;
-
       return {
         student,
         checkedByDay,
@@ -114,8 +98,21 @@ export function CashPage() {
     const nextCheckedIds = currentIds.includes(studentId)
       ? currentIds.filter((id) => id !== studentId)
       : [...currentIds, studentId];
-
     setCheckedStudents(targetDate, nextCheckedIds);
+  };
+
+  const handleCheckAll = (day: WeekDayKey) => {
+    const targetDate = weekDates[day];
+    const currentIds = cashRecords[targetDate]?.checkedStudentIds ?? [];
+    const allIds = students.map((s) => s.id);
+    const nextCheckedIds = allIds.every((id) => currentIds.includes(id)) ? [] : allIds;
+    setCheckedStudents(targetDate, nextCheckedIds);
+  };
+
+  const allChecked = (day: WeekDayKey) => {
+    const targetDate = weekDates[day];
+    const currentIds = cashRecords[targetDate]?.checkedStudentIds ?? [];
+    return students.length > 0 && students.every((s) => currentIds.includes(s.id));
   };
 
   const handleSave = () => {
@@ -124,64 +121,46 @@ export function CashPage() {
   };
 
   return (
-    <PageShell title={`Kas Minggu ${weekNumber}`} description="Checklist kas mingguan Senin–Kamis.">
-      <div className="space-y-4">
-        <div className="rounded-2xl bg-white p-4 shadow-soft">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Rentang minggu</p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">{formatWeekRange(weekDates)}</p>
-              <p className="mt-1 text-sm text-slate-500">{isCurrentWeek ? 'Minggu aktif' : 'Minggu yang dipilih'}</p>
-            </div>
-
-            <div className="flex shrink-0 gap-2">
+    <PageShell title="Kas" description={`Mingguan ${formatWeekRange(weekDates)}`}>
+      <div className="space-y-3">
+        <div className="rounded-2xl bg-white p-3 shadow-soft">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-500">
+              {isCurrentWeek ? 'Minggu ini' : 'Minggu lalu'}
+            </p>
+            <div className="flex gap-1">
               <button
                 type="button"
                 onClick={() => moveWeek(-1)}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200"
                 aria-label="Minggu sebelumnya"
               >
-                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
               </button>
               <button
                 type="button"
                 onClick={() => moveWeek(1)}
                 disabled={!canGoNext}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 disabled:opacity-30"
                 aria-label="Minggu berikutnya"
               >
-                <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                <ChevronRight className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-brand-50 px-4 py-3">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <p className="font-medium text-brand-900">Progress minggu</p>
-              <p className="font-semibold text-brand-700">
-                {weekProgress.filledSlots} / {weekProgress.totalSlots}
-              </p>
-            </div>
-            <div className="mt-2 h-2 rounded-full bg-brand-100">
+          <div className="mt-3 flex items-center gap-3 rounded-xl bg-brand-50 px-3 py-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-100">
               <div
-                className="h-2 rounded-full bg-brand-600 transition-all"
+                className="h-1.5 rounded-full bg-brand-500 transition-all"
                 style={{
                   width: `${weekProgress.totalSlots > 0 ? (weekProgress.filledSlots / weekProgress.totalSlots) * 100 : 0}%`,
                 }}
               />
             </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {weekDays.map((day) => {
-              const date = weekDates[day.key];
-              return (
-                <div key={day.key} className="rounded-2xl bg-slate-50 px-2 py-3">
-                  <p>{day.label}</p>
-                  <p className="mt-1 normal-case tracking-normal text-slate-400">{formatDisplayDate(date)}</p>
-                </div>
-              );
-            })}
+            <span className="text-xs font-semibold text-brand-700">
+              {weekProgress.filledSlots}/{weekProgress.totalSlots}
+            </span>
           </div>
         </div>
 
@@ -189,80 +168,87 @@ export function CashPage() {
           {students.length === 0 ? (
             <div className="p-4 text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-left">
-                <thead className="bg-slate-50 text-xs uppercase tracking-[0.16em] text-slate-500">
-                  <tr>
-                    <th className="sticky left-0 bg-slate-50 px-4 py-3 font-medium">Siswa</th>
-                    {weekDays.map((day) => (
-                      <th key={day.key} className="px-3 py-3 text-center font-medium">{day.label}</th>
-                    ))}
-                    <th className="px-4 py-3 font-medium">Bayar</th>
-                    <th className="px-4 py-3 font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {weekSummary.map(({ student, checkedByDay, paidCount, total }, index) => (
-                    <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
-                      <td className="sticky left-0 bg-inherit px-4 py-4 align-middle">
-                        <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">No. {index + 1}</p>
-                        <p className="truncate text-sm font-semibold text-slate-900">{student.name}</p>
-                      </td>
-                      {weekDays.map((day) => {
-                        const date = weekDates[day.key];
-                        const checked = checkedByDay[day.key];
-                        const disabled = !isCashDay(date);
-
-                        return (
-                          <td key={day.key} className="px-3 py-4 text-center align-middle">
-                            <button
-                              type="button"
-                              onClick={() => handleToggle(student.id, day.key)}
-                              disabled={disabled}
-                              className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full border transition ${
-                                checked
-                                  ? 'border-brand-500 bg-brand-500 text-white'
-                                  : disabled
-                                    ? 'border-slate-200 bg-slate-100 text-slate-300'
-                                    : 'border-slate-300 bg-white text-transparent'
-                              }`}
-                              aria-label={`${student.name} ${day.label}`}
-                            >
-                              {checked ? <Check className="h-5 w-5" strokeWidth={3} /> : null}
-                            </button>
-                          </td>
-                        );
-                      })}
-                      <td className="px-4 py-4 text-sm text-slate-600">
-                        {paidCount} / 4
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-brand-700">
-                        {formatCurrency(total)}
-                      </td>
-                    </tr>
+            <table className="w-full table-fixed text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="w-[76px] px-2 py-2 font-medium text-slate-500">Siswa</th>
+                  {weekDays.map((day) => (
+                    <th key={day.key} className="w-[44px] px-1 py-2 text-center">
+                      <p className="font-medium text-slate-500">{day.label}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleCheckAll(day.key)}
+                        disabled={!isCashDay(weekDates[day.key])}
+                        className={`mt-0.5 mx-auto flex items-center gap-0.5 rounded-md px-1 py-0.5 text-[9px] font-semibold uppercase transition disabled:opacity-30 ${
+                          allChecked(day.key)
+                            ? 'bg-brand-100 text-brand-700'
+                            : 'text-slate-400 hover:bg-slate-100'
+                        }`}
+                      >
+                        <CheckCheck className="h-2.5 w-2.5" strokeWidth={3} />
+                        semua
+                      </button>
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                  <th className="w-[56px] px-2 py-2 text-right font-medium text-slate-500">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {weekSummary.map(({ student, checkedByDay, total }) => (
+                  <tr key={student.id}>
+                    <td className="truncate px-2 py-2.5 font-medium text-slate-900">
+                      {student.name}
+                    </td>
+                    {weekDays.map((day) => {
+                      const date = weekDates[day.key];
+                      const checked = checkedByDay[day.key];
+                      const disabled = !isCashDay(date);
+                      return (
+                        <td key={day.key} className="px-1 py-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(student.id, day.key)}
+                            disabled={disabled}
+                            className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border transition ${
+                              checked
+                                ? 'border-brand-500 bg-brand-500 text-white'
+                                : disabled
+                                  ? 'border-slate-200 bg-slate-100 text-slate-300'
+                                  : 'border-slate-300 bg-white text-transparent'
+                            }`}
+                            aria-label={`${student.name} ${day.label}`}
+                          >
+                            {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td className="px-2 py-2.5 text-right font-semibold text-brand-700">
+                      {formatCurrency(total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Total pembayaran minggu</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="text-xs font-medium text-slate-500">Total minggu</p>
+            <div className="flex items-center gap-3">
+              <p className="text-lg font-semibold text-slate-900">
                 {formatCurrency(weekSummary.reduce((sum, item) => sum + item.total, 0))}
               </p>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white"
+              >
+                <Save className="h-4 w-4" strokeWidth={2} />
+                Simpan
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex h-12 items-center gap-2 rounded-2xl bg-brand-600 px-4 text-sm font-semibold text-white"
-            >
-              <Save className="h-5 w-5" strokeWidth={2} />
-              Simpan
-            </button>
           </div>
         </div>
       </div>
