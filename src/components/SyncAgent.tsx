@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { loadAppSettings } from '../lib/appSettings';
+import { WEB_APP_URL } from '../lib/config';
 import { loadCashRecords, loadFinanceRecords, loadStudents } from '../lib/appData';
 import { APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT, SYNC_REQUEST_EVENT } from '../lib/events';
 import { requestSync, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
@@ -12,7 +12,7 @@ import {
 
 export function SyncAgent() {
   const isSyncingRef = useRef(false);
-  const didInitialSyncRef = useRef(false);
+  const isRefreshingRef = useRef(false);
 
   useEffect(() => {
     const performSync = async () => {
@@ -24,14 +24,6 @@ export function SyncAgent() {
       setSyncPending();
 
       try {
-        const settings = loadAppSettings();
-        const webAppUrl = settings.webAppUrl.trim();
-
-        if (!webAppUrl) {
-          setSyncError('Isi Web App URL di Pengaturan terlebih dahulu.');
-          return;
-        }
-
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
           setSyncPending();
           return;
@@ -41,10 +33,10 @@ export function SyncAgent() {
         const cashRecords = loadCashRecords();
         const financeRecords = loadFinanceRecords();
 
-        await pingAppsScript(webAppUrl);
-        await syncStudentsToAppsScript(webAppUrl, students);
-        await syncCashToAppsScript(webAppUrl, cashRecords, students);
-        await syncFinanceToAppsScript(webAppUrl, financeRecords);
+        await pingAppsScript(WEB_APP_URL);
+        await syncStudentsToAppsScript(WEB_APP_URL, students);
+        await syncCashToAppsScript(WEB_APP_URL, cashRecords, students);
+        await syncFinanceToAppsScript(WEB_APP_URL, financeRecords);
 
         setSyncSynced();
       } catch (error) {
@@ -59,6 +51,18 @@ export function SyncAgent() {
       }
     };
 
+    const performRefresh = async () => {
+      if (isRefreshingRef.current) {
+        return;
+      }
+
+      isRefreshingRef.current = true;
+      window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
+      setTimeout(() => {
+        isRefreshingRef.current = false;
+      }, 5000);
+    };
+
     const handleRequest = () => {
       void performSync();
     };
@@ -71,20 +75,29 @@ export function SyncAgent() {
       requestSync();
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void performRefresh();
+      }
+    };
+
     window.addEventListener(SYNC_REQUEST_EVENT, handleRequest);
     window.addEventListener('online', handleOnline);
     window.addEventListener(APP_DATA_UPDATED_EVENT, handleAppDataUpdated);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const initialSettings = loadAppSettings();
-    if (initialSettings.webAppUrl.trim()) {
-      didInitialSyncRef.current = true;
-      window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
-    }
+    window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
+
+    const intervalId = setInterval(() => {
+      void performRefresh();
+    }, 60000);
 
     return () => {
       window.removeEventListener(SYNC_REQUEST_EVENT, handleRequest);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener(APP_DATA_UPDATED_EVENT, handleAppDataUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
     };
   }, []);
 

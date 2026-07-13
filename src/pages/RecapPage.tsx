@@ -7,7 +7,7 @@ import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
 
 export function RecapPage() {
-  const { students, cashRecords, financeRecords, refreshFromStorage, refreshFromSpreadsheet } = useAppData();
+  const { students, cashRecords, financeRecords, refreshFromSpreadsheet } = useAppData();
   const { settings } = useAppSettings();
   const [refreshMessage, setRefreshMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -72,18 +72,16 @@ export function RecapPage() {
               setRefreshState('loading');
               setRefreshMessage('');
 
-              const refreshed = settings.webAppUrl.trim()
-                ? await refreshFromSpreadsheet()
-                : (refreshFromStorage(), true);
+              const refreshed = await refreshFromSpreadsheet();
 
               if (refreshed) {
                 setRefreshState('success');
-                setRefreshMessage(settings.webAppUrl.trim() ? 'Data berhasil di-refresh dari Spreadsheet.' : 'Data di-refresh dari penyimpanan perangkat.');
+                setRefreshMessage('Data berhasil di-refresh dari Spreadsheet.');
                 return;
               }
 
               setRefreshState('error');
-              setRefreshMessage('Refresh gagal. Periksa Web App URL dan koneksi internet.');
+              setRefreshMessage('Refresh gagal. Periksa koneksi internet.');
             }}
             className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
           >

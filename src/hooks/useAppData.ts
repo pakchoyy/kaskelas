@@ -17,7 +17,7 @@ import {
 import { dispatchAppEvent, APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT } from '../lib/events';
 import { setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
 import { fetchAppsScriptData } from '../services/appsScript';
-import { loadAppSettings } from '../lib/appSettings';
+import { WEB_APP_URL } from '../lib/config';
 
 export function useAppData() {
   const [students, setStudents] = useState<Student[]>(() => loadStudents());
@@ -32,17 +32,9 @@ export function useAppData() {
   };
 
   const refreshFromSpreadsheet = async () => {
-    const settings = loadAppSettings();
-    const webAppUrl = settings.webAppUrl.trim();
-
-    if (!webAppUrl) {
-      setSyncError('Isi Web App URL di Pengaturan terlebih dahulu.');
-      return false;
-    }
-
     try {
       setSyncPending();
-      const data = await fetchAppsScriptData(webAppUrl);
+      const data = await fetchAppsScriptData(WEB_APP_URL);
 
       setStudents(data.students);
       setCashRecords(

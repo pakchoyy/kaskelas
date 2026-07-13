@@ -1,4 +1,5 @@
 import { readStorage, writeStorage } from './storage';
+import { WEB_APP_URL } from './config';
 
 export type AppSettings = {
   webAppUrl: string;
@@ -10,7 +11,7 @@ export type AppSettings = {
 export const APP_SETTINGS_KEY = 'bgy-kas-kelas-settings';
 
 export const defaultAppSettings: AppSettings = {
-  webAppUrl: '',
+  webAppUrl: WEB_APP_URL,
   dailyCashNominal: 1000,
   className: '',
   schoolYear: '',
