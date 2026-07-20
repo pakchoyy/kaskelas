@@ -81,6 +81,9 @@ export function useAppData() {
   useEffect(() => {
     const handler = () => { void refreshFromSpreadsheet(); };
     window.addEventListener(REFRESH_SPREADSHEET_EVENT, handler);
+
+    void refreshFromSpreadsheet();
+
     return () => window.removeEventListener(REFRESH_SPREADSHEET_EVENT, handler);
   }, []);
 

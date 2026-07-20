@@ -81,21 +81,25 @@ export function SyncAgent() {
       }
     };
 
+    const handleFocus = () => {
+      void performRefresh();
+    };
+
     window.addEventListener(SYNC_REQUEST_EVENT, handleRequest);
     window.addEventListener('online', handleOnline);
     window.addEventListener(APP_DATA_UPDATED_EVENT, handleAppDataUpdated);
+    window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
 
     const intervalId = setInterval(() => {
       void performRefresh();
-    }, 60000);
+    }, 20000);
 
     return () => {
       window.removeEventListener(SYNC_REQUEST_EVENT, handleRequest);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener(APP_DATA_UPDATED_EVENT, handleAppDataUpdated);
+      window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(intervalId);
     };
