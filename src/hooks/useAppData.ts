@@ -45,7 +45,6 @@ export function useAppData() {
     isRefreshingRef.current = true;
 
     try {
-      setSyncPending();
       const data = await fetchAppsScriptData(getEffectiveWebAppUrl());
 
       setStudents(data.students);
@@ -56,7 +55,6 @@ export function useAppData() {
         }, {}),
       );
       setFinanceRecords(data.financeRecords);
-      setSyncSynced();
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal memuat data dari Spreadsheet.';
