@@ -22,11 +22,25 @@ function toIsoLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function isValidDateString(date: string): boolean {
+  if (!date || typeof date !== 'string') {
+    return false;
+  }
+
+  const parsed = new Date(`${date}T00:00:00`);
+
+  return !isNaN(parsed.getTime());
+}
+
 export function todayIsoDate(): string {
   return toIsoLocalDate(new Date());
 }
 
 export function shiftIsoDate(date: string, offsetDays: number): string {
+  if (!isValidDateString(date)) {
+    return '';
+  }
+
   const nextDate = new Date(`${date}T00:00:00`);
   nextDate.setDate(nextDate.getDate() + offsetDays);
 
@@ -46,18 +60,34 @@ export function isDateBefore(date: string, otherDate: string): boolean {
 }
 
 export function formatDisplayDate(date: string): string {
+  if (!isValidDateString(date)) {
+    return '-';
+  }
+
   return dateFormatter.format(new Date(`${date}T00:00:00`));
 }
 
 export function formatShortDisplayDate(date: string): string {
+  if (!isValidDateString(date)) {
+    return '-';
+  }
+
   return shortDateFormatter.format(new Date(`${date}T00:00:00`));
 }
 
 export function formatWeekday(date: string): string {
+  if (!isValidDateString(date)) {
+    return '-';
+  }
+
   return weekdayFormatter.format(new Date(`${date}T00:00:00`));
 }
 
 export function isCashDay(date: string): boolean {
+  if (!isValidDateString(date)) {
+    return false;
+  }
+
   const day = new Date(`${date}T00:00:00`).getDay();
   return day >= 1 && day <= 4;
 }

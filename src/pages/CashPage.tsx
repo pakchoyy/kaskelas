@@ -17,6 +17,10 @@ const weekDays: Array<{ key: WeekDayKey; label: string }> = [
 ];
 
 function toIsoLocalDate(date: Date): string {
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -24,6 +28,10 @@ function toIsoLocalDate(date: Date): string {
 }
 
 function getMonday(date: Date): Date {
+  if (isNaN(date.getTime())) {
+    return new Date(NaN);
+  }
+
   const result = new Date(date);
   const day = result.getDay();
   const diff = day === 0 ? -6 : 1 - day;
