@@ -40,7 +40,6 @@ export function SyncAgent() {
         await syncFinanceToAppsScript(url, financeRecords);
 
         setSyncSynced();
-        window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Sinkronisasi gagal.';
         if (message.toLowerCase().includes('offline')) {

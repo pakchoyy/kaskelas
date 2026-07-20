@@ -63,7 +63,9 @@ export function useAppData() {
       setSyncError(message);
       return false;
     } finally {
-      isRefreshingRef.current = false;
+      queueMicrotask(() => {
+        isRefreshingRef.current = false;
+      });
     }
   };
 
