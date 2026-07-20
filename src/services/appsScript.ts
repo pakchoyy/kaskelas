@@ -11,13 +11,15 @@ async function parseResponse(response: Response): Promise<void> {
     return;
   }
 
+  let parsed: { success?: boolean; message?: string };
   try {
-    const parsed = JSON.parse(text) as { success?: boolean; message?: string };
-    if (parsed.success === false) {
-      throw new Error(parsed.message || 'Apps Script menolak request.');
-    }
+    parsed = JSON.parse(text) as { success?: boolean; message?: string };
   } catch {
-    return;
+    throw new Error('Respon dari Apps Script bukan JSON yang valid.');
+  }
+
+  if (parsed.success === false) {
+    throw new Error(parsed.message || 'Apps Script menolak request.');
   }
 }
 
@@ -60,7 +62,12 @@ export async function fetchAppsScriptData(url: string): Promise<{
     throw new Error(text || `HTTP ${response.status}`);
   }
 
-  const parsed = text ? (JSON.parse(text) as { success?: boolean; data?: { students?: Student[]; cashRecords?: CashDateRecord[]; financeRecords?: FinanceTransaction[] }; message?: string }) : {};
+  let parsed: { success?: boolean; data?: { students?: Student[]; cashRecords?: CashDateRecord[]; financeRecords?: FinanceTransaction[] }; message?: string };
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Respon dari Apps Script bukan JSON. Periksa URL Web App.');
+  }
 
   if (parsed.success === false) {
     throw new Error(parsed.message || 'Gagal mengambil data dari Apps Script.');
