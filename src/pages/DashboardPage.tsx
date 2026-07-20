@@ -62,7 +62,7 @@ export function DashboardPage() {
       title="Dashboard"
       description="Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini."
     >
-      <div className="space-y-4">
+      <div className="grid gap-3">
         <InfoCard title="Saldo Kelas" value={formatCurrency(metrics.saldo)} tone="brand">
             <p className="text-sm text-slate-500">
               {metrics.totalStudents > 0
