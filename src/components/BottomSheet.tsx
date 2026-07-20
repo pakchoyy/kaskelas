@@ -37,13 +37,15 @@ export function BottomSheet({ open, title, description, onClose, children }: Bot
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[88dvh] w-full rounded-t-3xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-soft sm:mx-auto sm:max-w-[430px]">
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-200" />
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+      <div className="relative z-10 max-h-dvh w-full overflow-y-auto rounded-t-3xl bg-white shadow-soft sm:mx-auto sm:max-w-[430px]">
+        <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-200" />
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          </div>
+          {children}
         </div>
-        <div className="max-h-[calc(88dvh-5rem)] overflow-y-auto pb-2">{children}</div>
       </div>
     </div>
   );

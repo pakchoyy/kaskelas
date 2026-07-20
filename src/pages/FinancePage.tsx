@@ -298,7 +298,7 @@ export function FinancePage() {
             <textarea
               value={draftNote}
               onChange={(event) => setDraftNote(event.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Contoh: Beli spidol kelas"
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none ring-brand-200 focus:border-brand-500 focus:ring-4"
             />
