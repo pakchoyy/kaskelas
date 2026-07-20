@@ -13,11 +13,15 @@ export type SyncState = {
 export const SYNC_STATE_KEY = 'bgy-kas-kelas-sync-state';
 
 export const defaultSyncState: SyncState = {
-  status: 'pending',
+  status: 'synced',
   lastSyncedAt: null,
   lastAttemptAt: null,
   lastError: null,
 };
+
+export function resetSyncState(): void {
+  saveSyncState(defaultSyncState);
+}
 
 export function loadSyncState(): SyncState {
   return readStorage(SYNC_STATE_KEY, defaultSyncState);
