@@ -107,7 +107,7 @@ export function RecapPage() {
           </p>
         </InfoCard>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <InfoCard title="Total Kas" value={formatCurrency(recap.totalKasMasuk)} />
           <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
           <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
