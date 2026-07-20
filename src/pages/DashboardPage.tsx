@@ -62,7 +62,7 @@ export function DashboardPage() {
       title="Dashboard"
       description="Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini."
     >
-      <div className="grid gap-3">
+      <div className="space-y-4">
         <InfoCard title="Saldo Kelas" value={formatCurrency(metrics.saldo)} tone="brand">
             <p className="text-sm text-slate-500">
               {metrics.totalStudents > 0
@@ -76,7 +76,7 @@ export function DashboardPage() {
           <InfoCard title="Total Keluar" value={formatCurrency(metrics.totalPengeluaran)} />
         </div>
 
-        <div className="rounded-2xl bg-white p-4 shadow-soft">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">5 Transaksi Terkini</p>
@@ -96,7 +96,7 @@ export function DashboardPage() {
                     <p className="truncate text-sm font-semibold text-slate-900">
                       {formatShortDisplayDate(item.date)}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="truncate text-xs text-slate-500">
                       {item.type === 'Kas'
                         ? `${item.count} siswa bayar`
                         : item.note}

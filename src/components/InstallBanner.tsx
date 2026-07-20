@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 
@@ -7,8 +7,13 @@ const DISMISS_KEY = 'bgy-install-banner-dismissed';
 export function InstallBanner() {
   const { canInstall, install } = usePwaInstall();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1');
+  const [isStandalone, setIsStandalone] = useState(false);
 
-  if (!canInstall || dismissed) {
+  useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
+
+  if (!canInstall || dismissed || isStandalone) {
     return null;
   }
 

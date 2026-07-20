@@ -59,10 +59,10 @@ export function RecapPage() {
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Ringkasan Akhir</p>
-            <p className="mt-1 text-base font-semibold text-slate-900">{settings.className || 'Kas Kelas'}</p>
-            <p className="text-xs text-slate-500">
+            <p className="mt-1 truncate text-base font-semibold text-slate-900">{settings.className || 'Kas Kelas'}</p>
+            <p className="truncate text-xs text-slate-500">
               {settings.schoolYear || 'Tahun pelajaran belum diisi'}
             </p>
           </div>
@@ -124,7 +124,13 @@ export function RecapPage() {
             <div className="p-4 text-sm text-slate-500">Belum ada data siswa.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+              <table className="w-full table-fixed divide-y divide-slate-100 text-left text-sm">
+                <colgroup>
+                  <col className="w-12" />
+                  <col />
+                  <col className="w-24" />
+                  <col className="w-28" />
+                </colgroup>
                 <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
                   <tr>
                     <th className="px-4 py-3 font-medium">No</th>
@@ -137,9 +143,9 @@ export function RecapPage() {
                   {recap.perStudent.map((student) => (
                     <tr key={student.id}>
                       <td className="px-4 py-3 text-slate-500">{student.number}</td>
-                      <td className="px-4 py-3 font-medium text-slate-900">{student.name}</td>
+                      <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
                       <td className="px-4 py-3 text-slate-600">{student.paidDays}</td>
-                      <td className="px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td>
+                      <td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td>
                     </tr>
                   ))}
                 </tbody>
