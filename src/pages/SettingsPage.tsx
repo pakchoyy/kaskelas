@@ -79,8 +79,41 @@ export function SettingsPage() {
           </div>
         </div>
 
+        <div className="rounded-2xl bg-white p-4 shadow-soft">
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">Web App URL (Google Apps Script)</span>
+            <input
+              value={settings.webAppUrl}
+              onChange={(event) =>
+                setSettings((current) => ({ ...current, webAppUrl: event.target.value }))
+              }
+              placeholder="https://script.google.com/macros/s/xxx/exec"
+              className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none ring-brand-200 focus:border-brand-500 focus:ring-4"
+            />
+            <p className="text-xs text-slate-500">
+              URL dari Google Apps Script. Isi jika URL default tidak sesuai.
+            </p>
+          </label>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const { pingAppsScript } = await import('../services/appsScript');
+                await pingAppsScript(settings.webAppUrl || 'https://script.google.com/macros/s/AKfycbw1g3U9hqZHIDHfGscXV9rMznBAXNg-FPAts1NkT-Q8pTx7KVwr6H09_7o7yBCS_53l/exec');
+                alert('Koneksi berhasil!');
+              } catch {
+                alert('Koneksi gagal. Periksa URL dan izin deploy.');
+              }
+            }}
+            className="mt-3 h-11 w-full rounded-2xl border border-brand-200 bg-brand-50 text-sm font-semibold text-brand-700"
+          >
+            Tes Koneksi
+          </button>
+        </div>
+
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-          Data otomatis sinkron ke Spreadsheet setiap 60 detik. Tidak perlu isi URL.
+          Data otomatis sinkron ke Spreadsheet. Jika ada perubahan, badge status akan menampilkan "Pending".
         </div>
 
         {canInstall || isStandalone ? (

@@ -15,15 +15,16 @@ import {
   type Student,
 } from '../lib/appData';
 import { dispatchAppEvent, APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT } from '../lib/events';
-import { setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
+import { loadSyncState, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
 import { fetchAppsScriptData } from '../services/appsScript';
-import { WEB_APP_URL } from '../lib/config';
+import { getEffectiveWebAppUrl } from '../lib/config';
 
 export function useAppData() {
   const [students, setStudents] = useState<Student[]>(() => loadStudents());
   const [cashRecords, setCashRecords] = useState<Record<string, CashDateRecord>>(() => loadCashRecords());
   const [financeRecords, setFinanceRecords] = useState<FinanceTransaction[]>(() => loadFinanceRecords());
   const isHydratedRef = useRef(false);
+  const isRefreshingRef = useRef(false);
 
   const refreshFromStorage = () => {
     setStudents(loadStudents());
@@ -32,9 +33,20 @@ export function useAppData() {
   };
 
   const refreshFromSpreadsheet = async () => {
+    if (isRefreshingRef.current) {
+      return false;
+    }
+
+    const syncState = loadSyncState();
+    if (syncState.status === 'pending') {
+      return false;
+    }
+
+    isRefreshingRef.current = true;
+
     try {
       setSyncPending();
-      const data = await fetchAppsScriptData(WEB_APP_URL);
+      const data = await fetchAppsScriptData(getEffectiveWebAppUrl());
 
       setStudents(data.students);
       setCashRecords(
@@ -50,26 +62,28 @@ export function useAppData() {
       const message = error instanceof Error ? error.message : 'Gagal memuat data dari Spreadsheet.';
       setSyncError(message);
       return false;
+    } finally {
+      isRefreshingRef.current = false;
     }
   };
 
   useEffect(() => {
     saveStudents(students);
-    if (isHydratedRef.current) {
+    if (isHydratedRef.current && !isRefreshingRef.current) {
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
     }
   }, [students]);
 
   useEffect(() => {
     saveCashRecords(cashRecords);
-    if (isHydratedRef.current) {
+    if (isHydratedRef.current && !isRefreshingRef.current) {
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
     }
   }, [cashRecords]);
 
   useEffect(() => {
     saveFinanceRecords(financeRecords);
-    if (isHydratedRef.current) {
+    if (isHydratedRef.current && !isRefreshingRef.current) {
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
     }
   }, [financeRecords]);

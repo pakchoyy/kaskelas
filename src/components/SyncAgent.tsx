@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { WEB_APP_URL } from '../lib/config';
+import { getEffectiveWebAppUrl } from '../lib/config';
 import { loadCashRecords, loadFinanceRecords, loadStudents } from '../lib/appData';
 import { APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT, SYNC_REQUEST_EVENT } from '../lib/events';
-import { requestSync, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
+import { loadSyncState, requestSync, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
 import {
   pingAppsScript,
   syncCashToAppsScript,
@@ -33,12 +33,14 @@ export function SyncAgent() {
         const cashRecords = loadCashRecords();
         const financeRecords = loadFinanceRecords();
 
-        await pingAppsScript(WEB_APP_URL);
-        await syncStudentsToAppsScript(WEB_APP_URL, students);
-        await syncCashToAppsScript(WEB_APP_URL, cashRecords, students);
-        await syncFinanceToAppsScript(WEB_APP_URL, financeRecords);
+        const url = getEffectiveWebAppUrl();
+        await pingAppsScript(url);
+        await syncStudentsToAppsScript(url, students);
+        await syncCashToAppsScript(url, cashRecords, students);
+        await syncFinanceToAppsScript(url, financeRecords);
 
         setSyncSynced();
+        window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Sinkronisasi gagal.';
         if (message.toLowerCase().includes('offline')) {
@@ -56,11 +58,16 @@ export function SyncAgent() {
         return;
       }
 
+      const syncState = loadSyncState();
+      if (syncState.status === 'pending' || isSyncingRef.current) {
+        return;
+      }
+
       isRefreshingRef.current = true;
       window.dispatchEvent(new Event(REFRESH_SPREADSHEET_EVENT));
       setTimeout(() => {
         isRefreshingRef.current = false;
-      }, 5000);
+      }, 8000);
     };
 
     const handleRequest = () => {
@@ -93,7 +100,7 @@ export function SyncAgent() {
 
     const intervalId = setInterval(() => {
       void performRefresh();
-    }, 20000);
+    }, 60000);
 
     return () => {
       window.removeEventListener(SYNC_REQUEST_EVENT, handleRequest);
