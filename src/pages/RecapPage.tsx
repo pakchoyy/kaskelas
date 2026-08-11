@@ -5,18 +5,28 @@ import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
+import { ChevronDown } from 'lucide-react';
+
+type ContributionFilter = 'semua' | 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji';
 
 export function RecapPage() {
   const { students, cashRecords, financeRecords, refreshFromSpreadsheet } = useAppData();
   const { settings } = useAppSettings();
   const [refreshMessage, setRefreshMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('semua');
 
   const recap = useMemo(() => {
     const dailyNominal = settings.dailyCashNominal || 1000;
 
+    // Filter hanya untuk Kas Kelas saat ini karena backend belum mendukung jenis lain
+    const filteredCashRecords = contributionFilter === 'semua' || contributionFilter === 'kas-kelas'
+      ? cashRecords
+      : {};
+
     const perStudent = students.map((student, index) => {
-      const paidDays = Object.values(cashRecords).filter((record) =>
+      const paidDays = Object.values(filteredCashRecords).filter((record) =>
         record.checkedStudentIds.includes(student.id),
       ).length;
 
@@ -38,7 +48,7 @@ export function RecapPage() {
       .reduce((sum, transaction) => sum + transaction.nominal, 0);
 
     const saldoKelas = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
-    const latestCashDate = Object.values(cashRecords)
+    const latestCashDate = Object.values(filteredCashRecords)
       .filter((record) => record.checkedStudentIds.length > 0)
       .sort((left, right) => right.date.localeCompare(left.date))[0]?.date;
 
@@ -50,7 +60,7 @@ export function RecapPage() {
       saldoKelas,
       latestCashDate,
     };
-  }, [cashRecords, financeRecords, settings.dailyCashNominal, students]);
+  }, [cashRecords, financeRecords, settings.dailyCashNominal, students, contributionFilter]);
 
   return (
     <PageShell
@@ -58,6 +68,81 @@ export function RecapPage() {
       description="Ringkasan saldo kelas dan tabel per siswa."
     >
       <div className="space-y-4">
+        {/* Filter Jenis Iuran */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="flex h-12 w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-soft"
+          >
+            {contributionFilter === 'semua' && 'Semua Iuran'}
+            {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
+            {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
+            {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
+            <ChevronDown className="h-5 w-5 text-slate-500" strokeWidth={2} />
+          </button>
+          {filterOpen && (
+            <div className="absolute top-full z-10 mt-1 w-full rounded-2xl border border-slate-200 bg-white shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setContributionFilter('semua');
+                  setFilterOpen(false);
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-medium transition first:rounded-t-2xl ${
+                  contributionFilter === 'semua'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Semua Iuran
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setContributionFilter('kas-kelas');
+                  setFilterOpen(false);
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-medium transition ${
+                  contributionFilter === 'kas-kelas'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Kas Kelas
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setContributionFilter('amal-jumat');
+                  setFilterOpen(false);
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-medium transition ${
+                  contributionFilter === 'amal-jumat'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Amal Jumat
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setContributionFilter('paguyuban-ngaji');
+                  setFilterOpen(false);
+                }}
+                className={`block w-full px-4 py-3 text-left text-sm font-medium transition last:rounded-b-2xl ${
+                  contributionFilter === 'paguyuban-ngaji'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Paguyuban Ngaji
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Ringkasan Akhir</p>

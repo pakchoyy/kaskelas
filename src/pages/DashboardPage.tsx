@@ -111,7 +111,7 @@ export function DashboardPage() {
                       {item.type === 'Pengeluaran' ? '-' : '+'}{formatCurrency(item.amount)}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {item.type === 'Kas' ? 'Kas masuk' : item.type === 'Pemasukan' ? 'Pemasukan lain' : 'Pengeluaran'}
+                      {item.type === 'Kas' ? 'Kas Kelas' : item.type === 'Pemasukan' ? 'Pemasukan lain' : 'Pengeluaran'}
                     </p>
                   </div>
                 </li>

@@ -4,7 +4,7 @@ import { Home, Users, CheckCircle2, Wallet, ClipboardList } from 'lucide-react';
 const items = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
   { to: '/siswa', label: 'Siswa', icon: Users },
-  { to: '/kas', label: 'Kas', icon: CheckCircle2 },
+  { to: '/iuran', label: 'Iuran', icon: CheckCircle2 },
   { to: '/keuangan', label: 'Keuangan', icon: Wallet },
   { to: '/rekap', label: 'Rekap', icon: ClipboardList },
 ];
