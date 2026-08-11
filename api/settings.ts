@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, queryOne } from './db';
-import { sendSuccess, sendError, sendNotFound, handleError } from './utils';
-import type { ContributionSetting, ContributionType } from './types';
+import { query, queryOne } from './db.js';
+import { sendSuccess, sendError, sendNotFound, handleError } from './utils.js';
+import type { ContributionSetting, ContributionType } from './types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

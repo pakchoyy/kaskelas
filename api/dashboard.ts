@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, queryOne } from './db';
-import { sendSuccess, handleError } from './utils';
-import type { DashboardMetrics } from './types';
+import { query, queryOne } from './db.js';
+import { sendSuccess, handleError } from './utils.js';
+import type { DashboardMetrics } from './types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

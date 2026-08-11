@@ -1,5 +1,5 @@
 import type { VercelResponse } from '@vercel/node';
-import type { ApiResponse } from './types';
+import type { ApiResponse } from './types.js';
 
 export function sendSuccess<T>(res: VercelResponse, data: T, message?: string): void {
   const response: ApiResponse<T> = {
