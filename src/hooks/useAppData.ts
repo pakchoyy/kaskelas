@@ -165,24 +165,44 @@ export function useAppData() {
 
   // Contribution operations
   const setCheckedStudents = useCallback(async (date: string, checkedStudentIds: string[]): Promise<void> => {
+    // Get existing contributions for this date
+    const existingForDate = contributions.filter(
+      c => c.date === date && c.contributionType === 'kas_kelas'
+    );
+    
+    // Determine which to add and which to remove
+    const toAdd = checkedStudentIds.filter(
+      sid => !existingForDate.some(c => c.studentId === sid)
+    );
+    const toRemove = existingForDate.filter(
+      c => !checkedStudentIds.includes(c.studentId)
+    );
+
+    // Optimistic update: update UI immediately
+    const optimisticContributions = toAdd.map(studentId => ({
+      id: `temp-${Date.now()}-${Math.random()}`,
+      studentId,
+      contributionType: 'kas_kelas' as const,
+      date,
+      nominal: 2000, // temporary, will be replaced by API response
+      periodMonth: null,
+      periodYear: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    setContributions(current => {
+      let next = current.filter(c => !toRemove.some(r => r.id === c.id));
+      next = [...next, ...optimisticContributions];
+      return next;
+    });
+
+    // Background: save to API
     try {
-      // Get existing contributions for this date
-      const existingForDate = contributions.filter(
-        c => c.date === date && c.contributionType === 'kas_kelas'
-      );
-      
       // Get contribution settings for default nominal
       const settings = await import('../services/api').then(m => m.settingsApi.getAll());
       const kasKelasSettings = settings.find(s => s.contributionType === 'kas_kelas');
       const defaultNominal = kasKelasSettings?.defaultNominal || 2000;
-
-      // Determine which to add and which to remove
-      const toAdd = checkedStudentIds.filter(
-        sid => !existingForDate.some(c => c.studentId === sid)
-      );
-      const toRemove = existingForDate.filter(
-        c => !checkedStudentIds.includes(c.studentId)
-      );
 
       // Add new contributions
       const addPromises = toAdd.map(studentId =>
@@ -202,9 +222,9 @@ export function useAppData() {
         Promise.all(removePromises),
       ]);
 
-      // Update local state
+      // Replace optimistic contributions with real API responses
       setContributions(current => {
-        let next = current.filter(c => !toRemove.some(r => r.id === c.id));
+        let next = current.filter(c => !optimisticContributions.some(o => o.id === c.id));
         next = [...next, ...added];
         return next;
       });
@@ -213,6 +233,14 @@ export function useAppData() {
     } catch (err) {
       console.error('Failed to set checked students:', err);
       setError(err instanceof Error ? err.message : 'Failed to save contributions');
+      
+      // Rollback optimistic update on error
+      setContributions(current => {
+        let next = current.filter(c => !optimisticContributions.some(o => o.id === c.id));
+        // Restore removed items
+        next = [...next, ...toRemove];
+        return next;
+      });
     }
   }, [contributions]);
 
