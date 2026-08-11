@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { InfoCard } from '../components/InfoCard';
 import { PageShell } from '../components/PageShell';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
 import { dashboardApi, type DashboardMetrics } from '../services/api';
+import { useAppData } from '../hooks/useAppData';
 
 export function DashboardPage() {
+  const { contributions } = useAppData();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const totalTabungan = useMemo(() => {
+    return contributions
+      .filter(c => c.contributionType === 'tabungan')
+      .reduce((sum, c) => sum + c.nominal, 0);
+  }, [contributions]);
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -75,6 +83,7 @@ export function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <InfoCard title="Siswa Aktif" value={metrics.totalStudents.toString()} />
+          <InfoCard title="Total Tabungan" value={formatCurrency(totalTabungan)} />
           <InfoCard title="Kas Masuk" value={formatCurrency(metrics.totalKasMasuk)} />
           <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
           <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />

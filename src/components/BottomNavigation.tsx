@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Users, CheckCircle2, Wallet, ClipboardList } from 'lucide-react';
+import { Home, Users, CheckCircle2, PiggyBank, Wallet, ClipboardList } from 'lucide-react';
 
 const items = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
   { to: '/siswa', label: 'Siswa', icon: Users },
   { to: '/iuran', label: 'Iuran', icon: CheckCircle2 },
+  { to: '/tabungan', label: 'Tabungan', icon: PiggyBank },
   { to: '/keuangan', label: 'Keuangan', icon: Wallet },
   { to: '/rekap', label: 'Rekap', icon: ClipboardList },
 ];
@@ -12,7 +13,7 @@ const items = [
 export function BottomNavigation() {
   return (
     <nav className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/98 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-6 gap-1">
         {items.map((item) => {
           const Icon = item.icon;
           return (

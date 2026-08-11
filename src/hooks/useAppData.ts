@@ -165,7 +165,7 @@ export function useAppData() {
 
   // Contribution operations
   const setCheckedStudents = useCallback(async (date: string, checkedStudentIds: string[]): Promise<void> => {
-    // Get existing contributions for this date
+    // Get existing contributions for this date from current state
     const existingForDate = contributions.filter(
       c => c.date === date && c.contributionType === 'kas_kelas'
     );
@@ -178,13 +178,18 @@ export function useAppData() {
       c => !checkedStudentIds.includes(c.studentId)
     );
 
-    // Optimistic update: update UI immediately
-    const optimisticContributions = toAdd.map(studentId => ({
-      id: `temp-${Date.now()}-${Math.random()}`,
+    // If nothing to change, return early
+    if (toAdd.length === 0 && toRemove.length === 0) {
+      return;
+    }
+
+    // Optimistic update: update UI immediately with temp IDs
+    const tempContributions = toAdd.map(studentId => ({
+      id: `temp-${date}-${studentId}`,
       studentId,
       contributionType: 'kas_kelas' as const,
       date,
-      nominal: 2000, // temporary, will be replaced by API response
+      nominal: 2000,
       periodMonth: null,
       periodYear: null,
       createdAt: new Date().toISOString(),
@@ -192,52 +197,44 @@ export function useAppData() {
     }));
 
     setContributions(current => {
+      // Remove items to be deleted
       let next = current.filter(c => !toRemove.some(r => r.id === c.id));
-      next = [...next, ...optimisticContributions];
+      // Add temp contributions
+      next = [...next, ...tempContributions];
       return next;
     });
 
-    // Background: save to API
+    // Background: save to API and reload
     try {
-      // Get contribution settings for default nominal
       const settings = await import('../services/api').then(m => m.settingsApi.getAll());
       const kasKelasSettings = settings.find(s => s.contributionType === 'kas_kelas');
       const defaultNominal = kasKelasSettings?.defaultNominal || 2000;
 
-      // Add new contributions
-      const addPromises = toAdd.map(studentId =>
-        contributionsApi.create({
-          studentId,
-          contributionType: 'kas_kelas',
-          date,
-          nominal: defaultNominal,
-        })
-      );
-
-      // Remove unchecked contributions
-      const removePromises = toRemove.map(c => contributionsApi.delete(c.id));
-
-      const [added] = await Promise.all([
-        Promise.all(addPromises),
-        Promise.all(removePromises),
+      // Execute adds and removes in parallel
+      await Promise.all([
+        ...toAdd.map(studentId =>
+          contributionsApi.create({
+            studentId,
+            contributionType: 'kas_kelas',
+            date,
+            nominal: defaultNominal,
+          })
+        ),
+        ...toRemove.map(c => contributionsApi.delete(c.id)),
       ]);
 
-      // Replace optimistic contributions with real API responses
-      setContributions(current => {
-        let next = current.filter(c => !optimisticContributions.some(o => o.id === c.id));
-        next = [...next, ...added];
-        return next;
-      });
+      // Reload all contributions from API to ensure consistency
+      const allContributions = await contributionsApi.getAll();
+      setContributions(allContributions);
 
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
     } catch (err) {
       console.error('Failed to set checked students:', err);
       setError(err instanceof Error ? err.message : 'Failed to save contributions');
       
-      // Rollback optimistic update on error
+      // Rollback: remove temp items and restore removed items
       setContributions(current => {
-        let next = current.filter(c => !optimisticContributions.some(o => o.id === c.id));
-        // Restore removed items
+        let next = current.filter(c => !tempContributions.some(t => t.id === c.id));
         next = [...next, ...toRemove];
         return next;
       });

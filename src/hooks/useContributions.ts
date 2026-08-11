@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
-type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji';
+type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan';
 
 export function useContributions(
   contributionType: FrontendContributionType,
