@@ -305,7 +305,7 @@ export function ContributionPage() {
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex h-12 w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-soft"
+            className="flex h-12 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
           >
             {currentTypeLabel}
             <ChevronDown className="h-5 w-5 text-slate-500" strokeWidth={2} />
@@ -478,8 +478,8 @@ export function ContributionPage() {
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3">
+                  {students.map((student, index) => (
+                    <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                       <p className="text-sm font-medium text-slate-900">{student.name}</p>
                       <input
                         type="number"
@@ -549,14 +549,14 @@ export function ContributionPage() {
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student) => {
+                  {students.map((student, index) => {
                     const isPaid = hasPaguyubanPaid(student.id);
                     return (
                       <button
                         key={student.id}
                         type="button"
                         onClick={() => handlePaguyubanToggle(student.id)}
-                        className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50"
+                        className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}
                       >
                         <p className="text-sm font-medium text-slate-900">{student.name}</p>
                         <div

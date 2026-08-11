@@ -179,15 +179,26 @@ export function CashPage() {
             <table className="w-full table-fixed text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="w-[76px] px-2 py-2 font-medium text-slate-500">Siswa</th>
+                  <th rowSpan={2} className="w-[76px] px-2 py-2 font-medium text-slate-500">
+                    Siswa
+                  </th>
                   {weekDays.map((day) => (
                     <th key={day.key} className="w-[44px] px-1 py-2 text-center">
                       <p className="font-medium text-slate-500">{day.label}</p>
+                    </th>
+                  ))}
+                  <th rowSpan={2} className="w-[56px] px-2 py-2 text-right font-medium text-slate-500">
+                    Total
+                  </th>
+                </tr>
+                <tr className="border-b border-slate-100">
+                  {weekDays.map((day) => (
+                    <th key={day.key} className="w-[44px] px-1 py-2 text-center">
                       <button
                         type="button"
                         onClick={() => handleCheckAll(day.key)}
                         disabled={!isCashDay(weekDates[day.key])}
-                        className={`mt-0.5 mx-auto flex items-center gap-0.5 rounded-md px-1 py-0.5 text-[9px] font-semibold uppercase transition disabled:opacity-30 ${
+                        className={`mx-auto flex items-center gap-0.5 rounded-md px-1 py-0.5 text-[9px] font-semibold uppercase transition disabled:opacity-30 ${
                           allChecked(day.key)
                             ? 'bg-brand-100 text-brand-700'
                             : 'text-slate-400 hover:bg-slate-100'
@@ -198,12 +209,11 @@ export function CashPage() {
                       </button>
                     </th>
                   ))}
-                  <th className="w-[56px] px-2 py-2 text-right font-medium text-slate-500">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {weekSummary.map(({ student, checkedByDay, total }) => (
-                  <tr key={student.id}>
+                {weekSummary.map(({ student, checkedByDay, total }, index) => (
+                  <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
                     <td className="truncate px-2 py-2.5 font-medium text-slate-900">
                       {student.name}
                     </td>

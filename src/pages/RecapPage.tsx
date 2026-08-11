@@ -95,11 +95,11 @@ export function RecapPage() {
       <div className="grid gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <button
-              type="button"
-              onClick={() => setFilterOpen((prev) => !prev)}
-              className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900"
-            >
+<button
+            type="button"
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
+          >
               <span>
                 {contributionFilter === 'semua' && 'Semua Jenis'}
                 {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
@@ -210,8 +210,8 @@ export function RecapPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {recap.perStudent.map((student) => (
-                    <tr key={student.id}>
+                  {recap.perStudent.map((student, index) => (
+                    <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
                       <td className="px-4 py-3 text-slate-500">{student.number}</td>
                       <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
                       <td className="px-4 py-3 text-slate-600">{student.paidDays}</td>

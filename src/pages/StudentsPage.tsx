@@ -179,7 +179,7 @@ export function StudentsPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {students.map((student, index) => (
-                <li key={student.id} className="flex items-center justify-between gap-3 px-4 py-4">
+                <li key={student.id} className={`flex items-center justify-between gap-3 px-4 py-4 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                   <div className="min-w-0">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">No. {index + 1}</p>
                     <p className="truncate text-base font-semibold text-slate-900">{student.name}</p>
