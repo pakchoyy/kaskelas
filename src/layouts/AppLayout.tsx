@@ -2,22 +2,16 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { InstallBanner } from '../components/InstallBanner';
-import { SyncAgent } from '../components/SyncAgent';
-import { SyncBadge } from '../components/SyncBadge';
 import { useAppSettings } from '../hooks/useAppSettings';
-import { useSyncStatus } from '../hooks/useSyncStatus';
-import { requestSync } from '../lib/sync';
 
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useAppSettings();
-  const syncState = useSyncStatus();
 
   return (
     <div className="min-h-dvh bg-slate-100 text-slate-900">
       <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-slate-50 shadow-soft">
-        <SyncAgent />
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 py-4 backdrop-blur">
           <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -34,12 +28,11 @@ export function AppLayout() {
                     {settings.className?.trim() || 'Kas Kelas'}
                   </h1>
                   <p className="truncate text-xs text-slate-500">
-                    {settings.schoolYear?.trim() || 'Siap sinkron ke Spreadsheet'}
+                    {settings.schoolYear?.trim() || 'Data tersimpan online'}
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <SyncBadge syncState={syncState} onClick={requestSync} />
                 <button
                   type="button"
                   aria-label="Buka pengaturan"

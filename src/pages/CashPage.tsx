@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Save, CheckCheck } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, CheckCheck } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, isCashDay, todayIsoDate } from '../lib/date';
-import { requestSync } from '../lib/sync';
 
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
 
@@ -121,11 +120,6 @@ export function CashPage() {
     const targetDate = weekDates[day];
     const currentIds = cashRecords[targetDate]?.checkedStudentIds ?? [];
     return students.length > 0 && students.every((s) => currentIds.includes(s.id));
-  };
-
-  const handleSave = () => {
-    saveCurrentState();
-    requestSync();
   };
 
   return (
@@ -254,19 +248,9 @@ export function CashPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-medium text-slate-500">Total minggu</p>
-            <div className="flex items-center gap-3">
-              <p className="text-lg font-semibold text-slate-900">
-                {formatCurrency(weekSummary.reduce((sum, item) => sum + item.total, 0))}
-              </p>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white"
-              >
-                <Save className="h-4 w-4" strokeWidth={2} />
-                Simpan
-              </button>
-            </div>
+            <p className="text-lg font-semibold text-slate-900">
+              {formatCurrency(weekSummary.reduce((sum, item) => sum + item.total, 0))}
+            </p>
           </div>
         </div>
       </div>
