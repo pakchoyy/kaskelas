@@ -53,6 +53,7 @@ export type ApiResponse<T = any> = {
 export type DashboardMetrics = {
   totalStudents: number;
   totalKasMasuk: number;
+  totalTabungan: number;
   totalPemasukanLain: number;
   totalPengeluaran: number;
   saldo: number;

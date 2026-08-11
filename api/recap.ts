@@ -44,19 +44,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Calculate totals
     const totalKasMasuk = perStudentWithNumbers.reduce((sum, s) => sum + s.total, 0);
     
-    const pemasukanResult = await queryOne<{ total: string | null }>(
-      `SELECT SUM(nominal) as total 
-       FROM finance_transactions 
-       WHERE type = 'pemasukan'`
+    const financeTotals = await queryOne<{
+      totalPemasukan: string | null;
+      totalPengeluaran: string | null;
+    }>(
+      `SELECT
+        COALESCE(SUM(nominal) FILTER (WHERE type = 'pemasukan'), 0) as "totalPemasukan",
+        COALESCE(SUM(nominal) FILTER (WHERE type = 'pengeluaran'), 0) as "totalPengeluaran"
+       FROM finance_transactions`
     );
-    const totalPemasukanLain = parseInt(pemasukanResult?.total || '0', 10);
-    
-    const pengeluaranResult = await queryOne<{ total: string | null }>(
-      `SELECT SUM(nominal) as total 
-       FROM finance_transactions 
-       WHERE type = 'pengeluaran'`
-    );
-    const totalPengeluaran = parseInt(pengeluaranResult?.total || '0', 10);
+    const totalPemasukanLain = parseInt(financeTotals?.totalPemasukan || '0', 10);
+    const totalPengeluaran = parseInt(financeTotals?.totalPengeluaran || '0', 10);
     
     const saldoKelas = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
     

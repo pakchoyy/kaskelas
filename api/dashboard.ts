@@ -9,102 +9,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     
-    // Get total active students
-    const studentCount = await queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM students WHERE active = true'
+    // Single query with CTE to get all metrics at once
+    const metricsResult = await queryOne<{
+      totalStudents: string;
+      totalKasMasuk: string;
+      totalTabungan: string;
+      totalPemasukanLain: string;
+      totalPengeluaran: string;
+    }>(
+      `WITH metrics AS (
+        SELECT
+          (SELECT COUNT(*) FROM students WHERE active = true) as total_students,
+          (SELECT COALESCE(SUM(nominal), 0) FROM contributions WHERE contribution_type = 'kas_kelas') as total_kas,
+          (SELECT COALESCE(SUM(nominal), 0) FROM contributions WHERE contribution_type::text = 'tabungan') as total_tabungan,
+          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pemasukan') as total_pemasukan,
+          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pengeluaran') as total_pengeluaran
+      )
+      SELECT 
+        total_students::text as "totalStudents",
+        total_kas::text as "totalKasMasuk",
+        total_tabungan::text as "totalTabungan",
+        total_pemasukan::text as "totalPemasukanLain",
+        total_pengeluaran::text as "totalPengeluaran"
+      FROM metrics`
     );
-    const totalStudents = parseInt(studentCount?.count || '0', 10);
     
-    // Get total kas masuk (contributions)
-    const kasResult = await queryOne<{ total: string | null }>(
-      `SELECT SUM(nominal) as total 
-       FROM contributions 
-       WHERE contribution_type = 'kas_kelas'`
-    );
-    const totalKasMasuk = parseInt(kasResult?.total || '0', 10);
-    
-    // Get total pemasukan lain
-    const pemasukanResult = await queryOne<{ total: string | null }>(
-      `SELECT SUM(nominal) as total 
-       FROM finance_transactions 
-       WHERE type = 'pemasukan'`
-    );
-    const totalPemasukanLain = parseInt(pemasukanResult?.total || '0', 10);
-    
-    // Get total pengeluaran
-    const pengeluaranResult = await queryOne<{ total: string | null }>(
-      `SELECT SUM(nominal) as total 
-       FROM finance_transactions 
-       WHERE type = 'pengeluaran'`
-    );
-    const totalPengeluaran = parseInt(pengeluaranResult?.total || '0', 10);
-    
-    // Calculate saldo
+    const totalStudents = parseInt(metricsResult?.totalStudents || '0', 10);
+    const totalKasMasuk = parseInt(metricsResult?.totalKasMasuk || '0', 10);
+    const totalTabungan = parseInt(metricsResult?.totalTabungan || '0', 10);
+    const totalPemasukanLain = parseInt(metricsResult?.totalPemasukanLain || '0', 10);
+    const totalPengeluaran = parseInt(metricsResult?.totalPengeluaran || '0', 10);
     const saldo = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
     
-    // Get recent transactions (last 5)
-    // Combine contributions and finance transactions
-    const recentContributions = await query<{
+    // Single UNION query for recent transactions
+    const recentTransactionsResult = await query<{
       id: string;
       date: string;
       type: string;
-      count: string;
+      count: string | null;
+      note: string | null;
       amount: string;
     }>(
-      `SELECT 
-        'contrib-' || date as id,
-        date::text as date,
-        'Kas' as type,
-        COUNT(*)::text as count,
-        SUM(nominal)::text as amount
-      FROM contributions
-      WHERE contribution_type = 'kas_kelas'
-      GROUP BY date
+      `(
+        SELECT 
+          'contrib-' || date as id,
+          date::text as date,
+          'Kas' as type,
+          COUNT(*)::text as count,
+          NULL as note,
+          SUM(nominal)::text as amount
+        FROM contributions
+        WHERE contribution_type = 'kas_kelas'
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT 5
+      )
+      UNION ALL
+      (
+        SELECT 
+          id,
+          date::text as date,
+          type::text as type,
+          NULL as count,
+          note,
+          nominal::text as amount
+        FROM finance_transactions
+        ORDER BY date DESC, created_at DESC
+        LIMIT 5
+      )
       ORDER BY date DESC
       LIMIT 5`
     );
     
-    const recentFinance = await query<{
-      id: string;
-      date: string;
-      type: string;
-      note: string;
-      amount: string;
-    }>(
-      `SELECT 
-        id,
-        date::text as date,
-        type,
-        note,
-        nominal::text as amount
-      FROM finance_transactions
-      ORDER BY date DESC, created_at DESC
-      LIMIT 5`
-    );
-    
-    // Merge and sort recent transactions
-    const recentTransactions = [
-      ...recentContributions.map(c => ({
-        id: c.id,
-        date: c.date,
-        type: c.type,
-        count: parseInt(c.count, 10),
-        amount: parseInt(c.amount, 10),
-      })),
-      ...recentFinance.map(f => ({
-        id: f.id,
-        date: f.date,
-        type: f.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
-        note: f.note,
-        amount: parseInt(f.amount, 10),
-      })),
-    ]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
+    const recentTransactions = recentTransactionsResult.map(row => ({
+      id: row.id,
+      date: row.date,
+      type: row.type === 'Kas' ? 'Kas' : row.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
+      ...(row.count ? { count: parseInt(row.count, 10) } : { note: row.note || '' }),
+      amount: parseInt(row.amount, 10),
+    }));
     
     const metrics: DashboardMetrics = {
       totalStudents,
       totalKasMasuk,
+      totalTabungan,
       totalPemasukanLain,
       totalPengeluaran,
       saldo,
