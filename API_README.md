@@ -93,6 +93,12 @@ Base URL: `/api`
 - Response: `{ success: true, data: ContributionSetting[] }`
 - Returns default nominal for each contribution type
 
+**PATCH `/api/settings`**
+- Body: `{ contributionType: 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji', defaultNominal: number | null }`
+- Updates `default_nominal` untuk tipe yang tidak fixed
+- `paguyuban_ngaji` ditolak (fixed nominal 12000)
+- Response: `{ success: true, data: ContributionSetting }`
+
 ### Dashboard
 
 **GET `/api/dashboard`**

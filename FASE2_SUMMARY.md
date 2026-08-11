@@ -54,6 +54,14 @@ Frontend telah berhasil diintegrasikan dengan Backend API. Aplikasi sekarang men
    - Amal Jumat: input nominal per siswa → create/update/remove kontribusi
    - Paguyuban Ngaji: toggle langsung tersimpan (period + Rp12.000)
    - Loading & saving states
+   - Edit nominal Kas Kelas tersimpan ke backend via `updateDailyCashNominal`
+
+8. **src/hooks/useAppSettings.ts** - Updated
+   - Sync `dailyCashNominal` dari backend settings (source of truth)
+   - `updateDailyCashNominal(nominal)` → PATCH /api/settings
+
+9. **src/pages/SettingsPage.tsx** - Updated
+   - Tombol "Simpan & Sinkronkan" ikut menyimpan nominal kas ke backend
 
 ### Files Modified (API bug fixes)
 
@@ -130,8 +138,9 @@ Frontend telah berhasil diintegrasikan dengan Backend API. Aplikasi sekarang men
 
 ### ✅ Settings (INTEGRATED)
 - GET /api/settings - Contribution settings (default nominal)
+- PATCH /api/settings - Update default_nominal (kas_kelas, amal_jumat; paguyuban ditolak karena fixed)
 
-**Usage**: useAppData (untuk Kas Kelas default nominal), useContributions
+**Usage**: useAppData (untuk Kas Kelas default nominal), useContributions, useAppSettings (Edit Nominal)
 
 ---
 
@@ -298,7 +307,7 @@ Semua API handler di-compile dan di-drive dengan mock req/res (Node + Neon). **1
    - Kas Kelas: ✅ via useAppData
    - Amal Jumat: ✅ via useContributions
    - Paguyuban Ngaji: ✅ via useContributions
-   - Edit nominal Kas Kelas: ⚠️ masih UI preview saja (backend settings hanya GET, tidak ada PATCH)
+   - Edit nominal Kas Kelas: ✅ tersimpan ke backend (PATCH /api/settings)
 
 2. **Offline support** - Belum diimplementasikan
    - Aplikasi sekarang full online (memerlukan API)
@@ -335,7 +344,6 @@ VITE_API_BASE_URL="/api"
 4. **Optimistic updates** - Update UI before API response
 5. **Offline support** - Service worker + IndexedDB cache
 6. **Authentication** - Multi-user support (jika diperlukan)
-7. **Settings API PATCH** - Edit nominal Kas Kelas agar tersimpan ke backend
 
 ---
 
@@ -369,3 +377,28 @@ User Action → Frontend (React) → API Client → Vercel Functions → Neon Po
 ---
 
 **FASE 2 SELESAI. Aplikasi siap untuk testing manual.**
+
+---
+
+## Deployment (LIVE)
+
+Frontend + API sudah di-deploy ke Vercel dan berjalan di production.
+
+| Item | Nilai |
+|------|-------|
+| Production URL | https://kaskelas-two.vercel.app |
+| Project | pakchoyys-projects/kaskelas |
+| Database | Neon PostgreSQL (floral-boat-83514478) |
+| `DATABASE_URL` | di-set sebagai env var Production Vercel |
+
+### Endpoint Live Terverifikasi
+- `GET /api/settings` → 3 settings (kas_kelas=2000, amal_jumat=NULL, paguyuban=12000/fixed)
+- `GET /api/students` → `[]` (bersih)
+- `GET /api/dashboard` → metrics dengan saldo 0
+- `GET /api/recap?contribution_type=kas_kelas` → perStudent kosong
+- `POST /api/students` + `DELETE /api/students` → create & soft-delete OK (data test dibersihkan)
+
+### Catatan Deploy
+- Relative import di `api/*.ts` wajib pakai ekstensi `.js` (mis. `./db.js`) karena Vercel memakai `moduleResolution node16/nodenext` (error TS2835).
+- Environment variable Vercel: `DATABASE_URL` (Sensitive, Production).
+- Deploy command: `npx vercel link --yes --project kaskelas` lalu `npx vercel deploy --prod --yes`.
