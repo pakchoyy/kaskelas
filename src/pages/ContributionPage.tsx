@@ -297,6 +297,7 @@ export function ContributionPage() {
 
   const handleTabunganSave = async () => {
     if (!tabunganStudentId || !tabunganNominal || Number(tabunganNominal) <= 0) {
+      alert('Mohon isi nominal dengan benar (harus lebih dari 0)');
       return;
     }
 
@@ -315,6 +316,7 @@ export function ContributionPage() {
       handleTabunganClose();
     } catch (err) {
       console.error('Failed to save tabungan:', err);
+      alert(`Gagal menyimpan: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setTabunganSaving(false);
     }
@@ -434,7 +436,7 @@ export function ContributionPage() {
                   <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
                 <p className="text-sm font-semibold text-slate-900">
-                  Minggu {formatWeekRange(weekDates)}
+                  {formatWeekRange(weekDates)}
                 </p>
                 <button
                   type="button"
