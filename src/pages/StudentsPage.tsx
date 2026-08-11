@@ -18,6 +18,7 @@ export function StudentsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeStudent = useMemo(
@@ -81,18 +82,40 @@ export function StudentsPage() {
     }
 
     try {
+      setImporting(true);
       const rows = await readExcelRows(file);
       const names = extractStudentNames(rows);
 
       if (names.length === 0) {
-        setImportMessage('Tidak ada nama ditemukan. Pastikan kolom "Nama" terisi.');
+        setImportMessage('Tidak ada nama ditemukan. Pastikan kolom nama terisi (mis. "Nama" atau "Nama Siswa").');
         return;
       }
 
-      names.forEach((name) => addStudent(name));
-      setImportMessage(`${names.length} siswa berhasil diimpor.`);
+      const existing = new Set(students.map((s) => s.name.trim().toLowerCase()));
+      const toAdd = names.filter((name) => !existing.has(name.trim().toLowerCase()));
+      const skipped = names.length - toAdd.length;
+
+      let success = 0;
+      for (const name of toAdd) {
+        const ok = await addStudent(name);
+        if (ok) {
+          success += 1;
+        }
+      }
+
+      const failed = toAdd.length - success;
+      const parts = [`${success} siswa berhasil diimpor.`];
+      if (skipped > 0) {
+        parts.push(`${skipped} dilewati (sudah ada).`);
+      }
+      if (failed > 0) {
+        parts.push(`${failed} gagal disimpan.`);
+      }
+      setImportMessage(parts.join(' '));
     } catch {
       setImportMessage('Gagal membaca file. Gunakan format .xlsx atau .csv.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -210,10 +233,11 @@ export function StudentsPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700"
+              disabled={importing}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-50"
             >
               <Upload className="h-5 w-5" strokeWidth={2} />
-              Pilih File Excel
+              {importing ? 'Mengimpor...' : 'Pilih File Excel'}
             </button>
 
             <a

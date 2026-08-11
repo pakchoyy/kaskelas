@@ -33,6 +33,7 @@ export function FinancePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredRecords = useMemo(() => {
@@ -125,6 +126,7 @@ export function FinancePage() {
     }
 
     try {
+      setImporting(true);
       const rows = await readExcelRows(file);
       const parsed = extractFinanceRows(rows);
 
@@ -133,10 +135,20 @@ export function FinancePage() {
         return;
       }
 
-      parsed.forEach((row) => addFinanceTransaction(row.type, row.date, row.nominal, row.note));
-      setImportMessage(`${parsed.length} transaksi berhasil diimpor.`);
+      let success = 0;
+      for (const row of parsed) {
+        const ok = await addFinanceTransaction(row.type, row.date, row.nominal, row.note);
+        if (ok) {
+          success += 1;
+        }
+      }
+
+      const failed = parsed.length - success;
+      setImportMessage(`${success} transaksi berhasil diimpor.${failed > 0 ? ` ${failed} gagal.` : ''}`);
     } catch {
       setImportMessage('Gagal membaca file. Gunakan format .xlsx atau .csv.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -344,10 +356,11 @@ export function FinancePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700"
+              disabled={importing}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-50"
             >
               <Upload className="h-5 w-5" strokeWidth={2} />
-              Pilih File Excel
+              {importing ? 'Mengimpor...' : 'Pilih File Excel'}
             </button>
 
             <a

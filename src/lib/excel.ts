@@ -23,6 +23,8 @@ export async function readExcelRows(file: File): Promise<ExcelRow[]> {
 }
 
 function pickValue(row: ExcelRow, keys: string[]): string {
+  const entries = Object.entries(row);
+
   for (const key of keys) {
     const value = row[key.toLowerCase()];
     if (value) {
@@ -30,15 +32,49 @@ function pickValue(row: ExcelRow, keys: string[]): string {
     }
   }
 
-  const firstCell = Object.values(row)[0] ?? '';
+  for (const key of keys) {
+    const found = entries.find(([k]) => k.includes(key));
+    if (found && found[1]) {
+      return found[1];
+    }
+  }
+
+  const firstCell = entries[0]?.[1] ?? '';
   return firstCell;
 }
 
 export function extractStudentNames(rows: ExcelRow[]): string[] {
+  const firstRow = rows[0];
+  if (!firstRow) {
+    return [];
+  }
+
+  const keys = Object.keys(firstRow);
+  const nameColumn =
+    ['nama', 'name', 'siswa', 'murid', 'panggilan']
+      .map((keyword) => keys.find((k) => k.includes(keyword)))
+      .find(Boolean) || null;
+
   return rows
-    .map((row) => pickValue(row, ['nama', 'name', 'siswa']))
-    .map((name) => name.trim())
-    .filter((name) => name.length > 0);
+    .map((row) => {
+      let raw = nameColumn ? row[nameColumn] : '';
+
+      if (!raw) {
+        for (const value of Object.values(row)) {
+          if (typeof value === 'string' && value.trim() && !/^\d+$/.test(value.trim())) {
+            raw = value;
+            break;
+          }
+        }
+      }
+
+      const name = raw.trim();
+      if (!name || /^\d+$/.test(name)) {
+        return null;
+      }
+      return name;
+    })
+    .filter((name): name is string => name !== null);
 }
 
 export type ParsedFinanceRow = {
