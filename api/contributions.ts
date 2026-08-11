@@ -114,7 +114,13 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Valid date is required (YYYY-MM-DD)');
   }
   
-  if (typeof nominal !== 'number' || nominal <= 0) {
+  // Validation: nominal must be a number and non-zero
+  // For tabungan, allow negative nominal (for withdrawals)
+  if (typeof nominal !== 'number' || nominal === 0) {
+    return sendError(res, 'Nominal must be a non-zero number');
+  }
+  
+  if (contributionType !== 'tabungan' && nominal <= 0) {
     return sendError(res, 'Nominal must be a positive number');
   }
   
