@@ -123,7 +123,7 @@ export function CashPage() {
   };
 
   return (
-    <PageShell title="Kas" description={`Mingguan ${formatWeekRange(weekDates)}`}>
+    <PageShell title="Kas" description={formatWeekRange(weekDates)}>
       <div className="space-y-3">
         <div className="rounded-2xl bg-white p-3 shadow-soft">
           <div className="flex items-center justify-between gap-2">
