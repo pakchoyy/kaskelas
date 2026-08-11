@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { Download, Trash2, Upload } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
@@ -9,9 +9,10 @@ import { extractStudentNames, readExcelRows } from '../lib/excel';
 type StudentFormMode = 'create' | 'edit';
 
 export function StudentsPage() {
-  const { students, addStudent, updateStudent, deleteStudent } = useAppData();
+  const { students, addStudent, updateStudent, deleteStudent, deleteAllStudents } = useAppData();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [formMode, setFormMode] = useState<StudentFormMode>('create');
   const [draftName, setDraftName] = useState('');
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
@@ -71,6 +72,11 @@ export function StudentsPage() {
 
     setDeleteOpen(false);
     setActiveStudentId(null);
+  };
+
+  const handleDeleteAll = async () => {
+    setDeleteAllOpen(false);
+    await deleteAllStudents();
   };
 
   const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +145,16 @@ export function StudentsPage() {
               <Upload className="h-4 w-4" strokeWidth={2} />
               Import
             </button>
+            {students.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setDeleteAllOpen(true)}
+                className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-700"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={2} />
+                Hapus Semua
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={openCreateSheet}
@@ -261,6 +277,16 @@ export function StudentsPage() {
           destructive
           onConfirm={handleDelete}
           onCancel={() => setDeleteOpen(false)}
+        />
+
+        <ConfirmDialog
+          open={deleteAllOpen}
+          title="Hapus semua siswa"
+          description={`Hapus semua ${students.length} siswa beserta data kasnya? Tindakan ini tidak bisa dibatalkan.`}
+          confirmLabel="Hapus Semua"
+          destructive
+          onConfirm={() => void handleDeleteAll()}
+          onCancel={() => setDeleteAllOpen(false)}
         />
       </div>
     </PageShell>

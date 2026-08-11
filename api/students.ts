@@ -27,8 +27,8 @@ async function handleGetStudents(req: VercelRequest, res: VercelResponse) {
   const includeInactive = parseQueryParam(req.query.includeInactive) === 'true';
   
   const sql = includeInactive
-    ? 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students ORDER BY name'
-    : 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students WHERE active = true ORDER BY name';
+    ? 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students ORDER BY created_at'
+    : 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students WHERE active = true ORDER BY created_at';
   
   const students = await query<Student>(sql);
   sendSuccess(res, students);

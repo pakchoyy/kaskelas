@@ -149,6 +149,20 @@ export function useAppData() {
     }
   }, []);
 
+  const deleteAllStudents = useCallback(async (): Promise<void> => {
+    try {
+      for (const student of students) {
+        await studentsApi.delete(student.id);
+      }
+      setStudents([]);
+      setContributions(current => current.filter(c => !students.some(s => s.id === c.studentId)));
+      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+    } catch (err) {
+      console.error('Failed to delete all students:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete all students');
+    }
+  }, [students]);
+
   // Contribution operations
   const setCheckedStudents = useCallback(async (date: string, checkedStudentIds: string[]): Promise<void> => {
     try {
@@ -346,6 +360,7 @@ export function useAppData() {
     addStudent,
     updateStudent,
     deleteStudent,
+    deleteAllStudents,
     setCheckedStudents,
     toggleStudentOnDate,
     saveCurrentState,

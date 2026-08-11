@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         AND c.contribution_type = $1
       WHERE s.active = true
       GROUP BY s.id, s.name
-      ORDER BY s.name`,
+      ORDER BY s.created_at`,
       [contributionType]
     );
     
