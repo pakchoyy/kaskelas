@@ -1,222 +1,207 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { InfoCard } from '../components/InfoCard';
 import { PageShell } from '../components/PageShell';
-import { useAppData } from '../hooks/useAppData';
-import { useAppSettings } from '../hooks/useAppSettings';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
 import { ChevronDown } from 'lucide-react';
+import { recapApi, type RecapData } from '../services/api';
+import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
 type ContributionFilter = 'semua' | 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji';
 
 export function RecapPage() {
-  const { students, cashRecords, financeRecords, refreshFromSpreadsheet } = useAppData();
-  const { settings } = useAppSettings();
   const [refreshMessage, setRefreshMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('semua');
+  const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('kas-kelas');
+  const [recap, setRecap] = useState<RecapData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const recap = useMemo(() => {
-    const dailyNominal = settings.dailyCashNominal || 1000;
-
-    // Filter hanya untuk Kas Kelas saat ini karena backend belum mendukung jenis lain
-    const filteredCashRecords = contributionFilter === 'semua' || contributionFilter === 'kas-kelas'
-      ? cashRecords
-      : {};
-
-    const perStudent = students.map((student, index) => {
-      const paidDays = Object.values(filteredCashRecords).filter((record) =>
-        record.checkedStudentIds.includes(student.id),
-      ).length;
-
-      return {
-        id: student.id,
-        number: index + 1,
-        name: student.name,
-        paidDays,
-        total: paidDays * dailyNominal,
-      };
-    });
-
-    const totalKasMasuk = perStudent.reduce((sum, item) => sum + item.total, 0);
-    const totalPemasukanLain = financeRecords
-      .filter((transaction) => transaction.type === 'Pemasukan')
-      .reduce((sum, transaction) => sum + transaction.nominal, 0);
-    const totalPengeluaran = financeRecords
-      .filter((transaction) => transaction.type === 'Pengeluaran')
-      .reduce((sum, transaction) => sum + transaction.nominal, 0);
-
-    const saldoKelas = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
-    const latestCashDate = Object.values(filteredCashRecords)
-      .filter((record) => record.checkedStudentIds.length > 0)
-      .sort((left, right) => right.date.localeCompare(left.date))[0]?.date;
-
-    return {
-      perStudent,
-      totalKasMasuk,
-      totalPemasukanLain,
-      totalPengeluaran,
-      saldoKelas,
-      latestCashDate,
+  useEffect(() => {
+    const loadRecap = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const apiType = mapContributionTypeToApi(contributionFilter === 'semua' ? 'kas-kelas' : contributionFilter);
+        const data = await recapApi.getData(apiType);
+        setRecap(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load recap';
+        setError(message);
+        console.error('Failed to load recap:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [cashRecords, financeRecords, settings.dailyCashNominal, students, contributionFilter]);
+
+    loadRecap();
+  }, [contributionFilter]);
+
+  const handleRefresh = async () => {
+    setRefreshState('loading');
+    setRefreshMessage('');
+
+    try {
+      const apiType = mapContributionTypeToApi(contributionFilter === 'semua' ? 'kas-kelas' : contributionFilter);
+      const data = await recapApi.getData(apiType);
+      setRecap(data);
+      setRefreshState('success');
+      setRefreshMessage('Data berhasil dimuat');
+      
+      setTimeout(() => {
+        setRefreshState('idle');
+        setRefreshMessage('');
+      }, 2000);
+    } catch (err) {
+      setRefreshState('error');
+      setRefreshMessage(err instanceof Error ? err.message : 'Gagal memuat data');
+    }
+  };
+
+  if (loading && !recap) {
+    return (
+      <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+        <div className="flex items-center justify-center py-12">
+          <p className="text-slate-500">Memuat data...</p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (error && !recap) {
+    return (
+      <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+        <div className="flex flex-col items-center justify-center py-12">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-brand-600 text-white rounded-lg"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (!recap) {
+    return null;
+  }
 
   return (
-    <PageShell
-      title="Rekap"
-      description="Ringkasan saldo kelas dan tabel per siswa."
-    >
-      <div className="space-y-4">
-        {/* Filter Jenis Iuran */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="flex h-12 w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-soft"
-          >
-            {contributionFilter === 'semua' && 'Semua Iuran'}
-            {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
-            {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
-            {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
-            <ChevronDown className="h-5 w-5 text-slate-500" strokeWidth={2} />
-          </button>
-          {filterOpen && (
-            <div className="absolute top-full z-10 mt-1 w-full rounded-2xl border border-slate-200 bg-white shadow-lg">
-              <button
-                type="button"
-                onClick={() => {
-                  setContributionFilter('semua');
-                  setFilterOpen(false);
-                }}
-                className={`block w-full px-4 py-3 text-left text-sm font-medium transition first:rounded-t-2xl ${
-                  contributionFilter === 'semua'
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                Semua Iuran
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContributionFilter('kas-kelas');
-                  setFilterOpen(false);
-                }}
-                className={`block w-full px-4 py-3 text-left text-sm font-medium transition ${
-                  contributionFilter === 'kas-kelas'
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                Kas Kelas
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContributionFilter('amal-jumat');
-                  setFilterOpen(false);
-                }}
-                className={`block w-full px-4 py-3 text-left text-sm font-medium transition ${
-                  contributionFilter === 'amal-jumat'
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                Amal Jumat
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContributionFilter('paguyuban-ngaji');
-                  setFilterOpen(false);
-                }}
-                className={`block w-full px-4 py-3 text-left text-sm font-medium transition last:rounded-b-2xl ${
-                  contributionFilter === 'paguyuban-ngaji'
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                Paguyuban Ngaji
-              </button>
-            </div>
-          )}
-        </div>
+    <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+      <div className="grid gap-3">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <button
+              type="button"
+              onClick={() => setFilterOpen((prev) => !prev)}
+              className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900"
+            >
+              <span>
+                {contributionFilter === 'semua' && 'Semua Jenis'}
+                {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
+                {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
+                {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
+              </span>
+              <ChevronDown className="h-5 w-5 text-slate-400" strokeWidth={2} />
+            </button>
 
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Ringkasan Akhir</p>
-            <p className="mt-1 truncate text-base font-semibold text-slate-900">{settings.className || 'Kas Kelas'}</p>
-            <p className="truncate text-xs text-slate-500">
-              {settings.schoolYear || 'Tahun pelajaran belum diisi'}
-            </p>
+            {filterOpen && (
+              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContributionFilter('kas-kelas');
+                    setFilterOpen(false);
+                  }}
+                  className={`block w-full px-4 py-3 text-left text-sm ${
+                    contributionFilter === 'kas-kelas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
+                  }`}
+                >
+                  Kas Kelas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContributionFilter('amal-jumat');
+                    setFilterOpen(false);
+                  }}
+                  className={`block w-full px-4 py-3 text-left text-sm ${
+                    contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
+                  }`}
+                >
+                  Amal Jumat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContributionFilter('paguyuban-ngaji');
+                    setFilterOpen(false);
+                  }}
+                  className={`block w-full px-4 py-3 text-left text-sm ${
+                    contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
+                  }`}
+                >
+                  Paguyuban Ngaji
+                </button>
+              </div>
+            )}
           </div>
+
           <button
             type="button"
-            onClick={async () => {
-              setRefreshState('loading');
-              setRefreshMessage('');
-
-              const refreshed = await refreshFromSpreadsheet();
-
-              if (refreshed) {
-                setRefreshState('success');
-                setRefreshMessage('Data berhasil di-refresh dari Spreadsheet.');
-                return;
-              }
-
-              setRefreshState('error');
-              setRefreshMessage('Refresh gagal. Periksa koneksi internet.');
-            }}
-            className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
+            onClick={handleRefresh}
+            disabled={refreshState === 'loading'}
+            className="flex h-11 items-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {refreshState === 'loading' ? 'Merefresh...' : 'Refresh'}
+            {refreshState === 'loading' ? 'Memuat...' : 'Muat Ulang'}
           </button>
         </div>
 
-        {refreshMessage ? (
+        {refreshMessage && (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm ${
+            className={`rounded-xl p-3 text-sm ${
               refreshState === 'success'
                 ? 'bg-emerald-50 text-emerald-800'
-                : 'bg-rose-50 text-rose-700'
+                : refreshState === 'error'
+                  ? 'bg-rose-50 text-rose-800'
+                  : 'bg-slate-50 text-slate-800'
             }`}
           >
             {refreshMessage}
           </div>
-        ) : null}
+        )}
 
-        <InfoCard title="Saldo Kelas" value={formatCurrency(recap.saldoKelas)} tone="brand">
-          <p className="text-sm text-slate-500">
-            Terhitung dari kas harian, pemasukan lain, dan pengeluaran.
-          </p>
-        </InfoCard>
-
-        <div className="space-y-3">
-          <InfoCard title="Total Kas" value={formatCurrency(recap.totalKasMasuk)} />
+        <div className="grid grid-cols-2 gap-3">
+          <InfoCard title="Total Kas Masuk" value={formatCurrency(recap.totalKasMasuk)} />
+          <InfoCard title="Saldo Kelas" value={formatCurrency(recap.saldoKelas)} tone="brand" />
           <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
           <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
         </div>
 
-        {recap.latestCashDate ? (
-          <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-900">
-            Update kas terakhir: {formatShortDisplayDate(recap.latestCashDate)}
+        {recap.latestCashDate && (
+          <div className="rounded-xl bg-slate-50 p-3 text-center">
+            <p className="text-xs text-slate-500">Terakhir bayar</p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              {formatShortDisplayDate(recap.latestCashDate)}
+            </p>
           </div>
-        ) : null}
+        )}
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <h3 className="text-base font-semibold text-slate-900">Per Siswa</h3>
+          </div>
+
           {recap.perStudent.length === 0 ? (
-            <div className="p-4 text-sm text-slate-500">Belum ada data siswa.</div>
+            <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed divide-y divide-slate-100 text-left text-sm">
-                <colgroup>
-                  <col className="w-12" />
-                  <col />
-                  <col className="w-24" />
-                  <col className="w-28" />
-                </colgroup>
-                <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
+              <table className="w-full">
+                <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 font-medium">No</th>
                     <th className="px-4 py-3 font-medium">Nama</th>

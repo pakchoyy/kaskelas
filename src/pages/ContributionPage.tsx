@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Save, CheckCheck, Edit2, ChevronDown } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { useContributions } from '../hooks/useContributions';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
@@ -79,7 +80,7 @@ function getMonthInfo(dateIso: string): { year: number; month: number; monthName
 
 export function ContributionPage() {
   const { students, cashRecords, setCheckedStudents, saveCurrentState } = useAppData();
-  const { settings } = useAppSettings();
+  const { settings, updateDailyCashNominal } = useAppSettings();
   
   const [contributionType, setContributionType] = useState<ContributionType>('kas-kelas');
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
@@ -91,9 +92,7 @@ export function ContributionPage() {
   
   // State untuk Amal Jumat - nominal per siswa
   const [amalJumatNominals, setAmalJumatNominals] = useState<Record<string, string>>({});
-  
-  // State untuk Paguyuban Ngaji - checklist
-  const [paguyubanChecked, setPaguyubanChecked] = useState<Record<string, boolean>>({});
+  const [amalSaving, setAmalSaving] = useState(false);
 
   // Kas Kelas logic
   const weekDates = useMemo(() => getWeekDates(anchorDate), [anchorDate]);
@@ -134,6 +133,15 @@ export function ContributionPage() {
 
   // Amal Jumat logic
   const fridayDate = useMemo(() => getFriday(anchorDate), [anchorDate]);
+
+  const {
+    contributions: amalRecords,
+    loading: amalLoading,
+    addContribution: addAmalContribution,
+    updateContribution: updateAmalContribution,
+    removeContribution: removeAmalContribution,
+  } = useContributions('amal-jumat', { date: fridayDate });
+
   const totalAmalJumat = useMemo(() => {
     return Object.values(amalJumatNominals).reduce((sum, val) => {
       const num = parseInt(val) || 0;
@@ -141,16 +149,43 @@ export function ContributionPage() {
     }, 0);
   }, [amalJumatNominals]);
 
+  // Sync Amal Jumat inputs with saved contributions when navigating weeks
+  const amalSyncedDateRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (amalSyncedDateRef.current === fridayDate) {
+      return;
+    }
+    if (amalLoading) {
+      return;
+    }
+    const next: Record<string, string> = {};
+    amalRecords.forEach((c) => {
+      next[c.studentId] = String(c.nominal);
+    });
+    setAmalJumatNominals(next);
+    amalSyncedDateRef.current = fridayDate;
+  }, [fridayDate, amalLoading, amalRecords]);
+
   // Paguyuban Ngaji logic
   const monthInfo = useMemo(() => getMonthInfo(anchorDate), [anchorDate]);
   const paguyubanNominal = 12000;
+
+  const {
+    toggleStudent: togglePaguyubanStudent,
+    hasStudentPaid: hasPaguyubanPaid,
+    getPaidStudentIds: getPaguyubanPaidIds,
+  } = useContributions('paguyuban-ngaji', {
+    periodMonth: monthInfo.month + 1,
+    periodYear: monthInfo.year,
+  });
+
   const paguyubanStats = useMemo(() => {
-    const paidCount = Object.values(paguyubanChecked).filter(Boolean).length;
+    const paidCount = getPaguyubanPaidIds().length;
     return {
       paidCount,
       total: paidCount * paguyubanNominal,
     };
-  }, [paguyubanChecked]);
+  }, [getPaguyubanPaidIds, paguyubanNominal]);
 
   const handleKasKelasToggle = (studentId: string, dayKey: WeekDayKey) => {
     const dateIso = weekDates[dayKey];
@@ -173,8 +208,11 @@ export function ContributionPage() {
     setEditNominalOpen(true);
   };
 
-  const handleEditNominalSave = () => {
-    // Ini hanya untuk UI preview, tidak menyimpan ke backend
+  const handleEditNominalSave = async () => {
+    const nominal = Number(editNominalValue);
+    if (Number.isFinite(nominal) && nominal > 0) {
+      await updateDailyCashNominal(nominal);
+    }
     setEditNominalOpen(false);
   };
 
@@ -182,18 +220,35 @@ export function ContributionPage() {
     setAmalJumatNominals((prev) => ({ ...prev, [studentId]: value }));
   };
 
-  const handleAmalJumatSave = () => {
-    // Ini hanya untuk UI preview, data disimpan di local state
-    alert('Data Amal Jumat disimpan (hanya di UI, backend belum diubah)');
+  const handleAmalJumatSave = async () => {
+    setAmalSaving(true);
+    try {
+      for (const student of students) {
+        const raw = amalJumatNominals[student.id] || '';
+        const nominal = parseInt(raw, 10) || 0;
+        const existing = amalRecords.find((c) => c.studentId === student.id);
+
+        if (nominal > 0) {
+          if (!existing) {
+            await addAmalContribution(student.id, nominal, fridayDate);
+          } else if (existing.nominal !== nominal) {
+            await updateAmalContribution(existing.id, { nominal });
+          }
+        } else if (existing) {
+          await removeAmalContribution(existing.id);
+        }
+      }
+    } finally {
+      setAmalSaving(false);
+    }
   };
 
   const handlePaguyubanToggle = (studentId: string) => {
-    setPaguyubanChecked((prev) => ({ ...prev, [studentId]: !prev[studentId] }));
+    togglePaguyubanStudent(studentId, paguyubanNominal);
   };
 
   const handlePaguyubanSave = () => {
-    // Ini hanya untuk UI preview, data disimpan di local state
-    alert('Data Paguyuban Ngaji disimpan (hanya di UI, backend belum diubah)');
+    alert('Data Paguyuban Ngaji tersimpan otomatis.');
   };
 
   const handlePrevPeriod = () => {
@@ -417,7 +472,9 @@ export function ContributionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (
+              {amalLoading && amalRecords.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
+              ) : students.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
@@ -447,10 +504,11 @@ export function ContributionPage() {
                   <button
                     type="button"
                     onClick={handleAmalJumatSave}
-                    className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white"
+                    disabled={amalSaving}
+                    className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" strokeWidth={2} />
-                    Simpan
+                    {amalSaving ? 'Menyimpan...' : 'Simpan'}
                   </button>
                 </div>
               </div>
@@ -492,7 +550,7 @@ export function ContributionPage() {
               ) : (
                 <div className="space-y-2">
                   {students.map((student) => {
-                    const isPaid = paguyubanChecked[student.id] || false;
+                    const isPaid = hasPaguyubanPaid(student.id);
                     return (
                       <button
                         key={student.id}

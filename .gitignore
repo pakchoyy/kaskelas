@@ -7,3 +7,7 @@ coverage
 vite.config.js
 vite.config.d.ts
 package-lock.json
+.env.local
+.agents/
+skills-lock.json
+.neon

@@ -1,218 +1,357 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  createCashRecord,
-  createFinanceTransaction,
-  createStudent,
-  loadFinanceRecords,
-  loadCashRecords,
-  loadStudents,
-  normalizeCheckedIds,
-  saveFinanceRecords,
-  saveCashRecords,
-  saveStudents,
-  type FinanceTransaction,
-  type CashDateRecord,
+  studentsApi,
+  contributionsApi,
+  financeApi,
   type Student,
-} from '../lib/appData';
-import { dispatchAppEvent, APP_DATA_UPDATED_EVENT, REFRESH_SPREADSHEET_EVENT } from '../lib/events';
-import { loadSyncState, setSyncError, setSyncPending, setSyncSynced } from '../lib/sync';
-import { fetchAppsScriptData } from '../services/appsScript';
-import { getEffectiveWebAppUrl } from '../lib/config';
+  type Contribution,
+  type FinanceTransaction as ApiFinanceTransaction,
+  type ContributionType,
+} from '../services/api';
+import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
+import { mapFinanceTypeFromApi, mapFinanceTypeToApi } from '../lib/apiHelpers';
+
+// Frontend types for backward compatibility
+export type FinanceTransaction = {
+  id: string;
+  type: 'Pemasukan' | 'Pengeluaran';
+  date: string;
+  nominal: number;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Legacy types for backward compatibility
+export type CashDateRecord = {
+  date: string;
+  checkedStudentIds: string[];
+  updatedAt: string;
+};
 
 export function useAppData() {
-  const [students, setStudents] = useState<Student[]>(() => loadStudents());
-  const [cashRecords, setCashRecords] = useState<Record<string, CashDateRecord>>(() => loadCashRecords());
-  const [financeRecords, setFinanceRecords] = useState<FinanceTransaction[]>(() => loadFinanceRecords());
-  const isHydratedRef = useRef(false);
-  const isRefreshingRef = useRef(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [apiFinanceRecords, setApiFinanceRecords] = useState<ApiFinanceTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const refreshFromStorage = () => {
-    setStudents(loadStudents());
-    setCashRecords(loadCashRecords());
-    setFinanceRecords(loadFinanceRecords());
-  };
+  // Map API finance records to frontend format
+  const financeRecords = useMemo<FinanceTransaction[]>(() => {
+    return apiFinanceRecords.map(record => ({
+      ...record,
+      type: mapFinanceTypeFromApi(record.type),
+    }));
+  }, [apiFinanceRecords]);
 
-  const refreshFromSpreadsheet = async () => {
-    if (isRefreshingRef.current) {
+  // Transform contributions to cashRecords format for backward compatibility
+  const cashRecords = useMemo(() => {
+    const records: Record<string, CashDateRecord> = {};
+    
+    contributions
+      .filter(c => c.contributionType === 'kas_kelas')
+      .forEach(c => {
+        if (!records[c.date]) {
+          records[c.date] = {
+            date: c.date,
+            checkedStudentIds: [],
+            updatedAt: c.updatedAt,
+          };
+        }
+        records[c.date].checkedStudentIds.push(c.studentId);
+        // Update to latest timestamp
+        if (c.updatedAt > records[c.date].updatedAt) {
+          records[c.date].updatedAt = c.updatedAt;
+        }
+      });
+    
+    return records;
+  }, [contributions]);
+
+  // Load data from API
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [studentsData, contributionsData, financeData] = await Promise.all([
+        studentsApi.getAll(),
+        contributionsApi.getAll(),
+        financeApi.getAll(),
+      ]);
+      
+      setStudents(studentsData);
+      setContributions(contributionsData);
+      setApiFinanceRecords(financeData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      setError(message);
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Student operations
+  const addStudent = useCallback(async (name: string): Promise<boolean> => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       return false;
     }
-
-    const syncState = loadSyncState();
-    if (syncState.status === 'pending') {
-      return false;
-    }
-
-    isRefreshingRef.current = true;
 
     try {
-      const data = await fetchAppsScriptData(getEffectiveWebAppUrl());
-
-      setStudents(data.students);
-      setCashRecords(
-        data.cashRecords.reduce<Record<string, CashDateRecord>>((accumulator, record) => {
-          accumulator[record.date] = record;
-          return accumulator;
-        }, {}),
-      );
-      setFinanceRecords(data.financeRecords);
+      const newStudent = await studentsApi.create(trimmedName);
+      setStudents(current => [...current, newStudent]);
+      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
       return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Gagal memuat data dari Spreadsheet.';
-      setSyncError(message);
+    } catch (err) {
+      console.error('Failed to add student:', err);
+      setError(err instanceof Error ? err.message : 'Failed to add student');
       return false;
-    } finally {
-      queueMicrotask(() => {
-        isRefreshingRef.current = false;
+    }
+  }, []);
+
+  const updateStudent = useCallback(async (studentId: string, name: string): Promise<boolean> => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return false;
+    }
+
+    try {
+      const updated = await studentsApi.update(studentId, trimmedName);
+      setStudents(current =>
+        current.map(s => (s.id === studentId ? updated : s))
+      );
+      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+      return true;
+    } catch (err) {
+      console.error('Failed to update student:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update student');
+      return false;
+    }
+  }, []);
+
+  const deleteStudent = useCallback(async (studentId: string): Promise<void> => {
+    try {
+      await studentsApi.delete(studentId);
+      setStudents(current => current.filter(s => s.id !== studentId));
+      // Remove related contributions
+      setContributions(current => current.filter(c => c.studentId !== studentId));
+      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+    } catch (err) {
+      console.error('Failed to delete student:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete student');
+    }
+  }, []);
+
+  // Contribution operations
+  const setCheckedStudents = useCallback(async (date: string, checkedStudentIds: string[]): Promise<void> => {
+    try {
+      // Get existing contributions for this date
+      const existingForDate = contributions.filter(
+        c => c.date === date && c.contributionType === 'kas_kelas'
+      );
+      
+      // Get contribution settings for default nominal
+      const settings = await import('../services/api').then(m => m.settingsApi.getAll());
+      const kasKelasSettings = settings.find(s => s.contributionType === 'kas_kelas');
+      const defaultNominal = kasKelasSettings?.defaultNominal || 2000;
+
+      // Determine which to add and which to remove
+      const toAdd = checkedStudentIds.filter(
+        sid => !existingForDate.some(c => c.studentId === sid)
+      );
+      const toRemove = existingForDate.filter(
+        c => !checkedStudentIds.includes(c.studentId)
+      );
+
+      // Add new contributions
+      const addPromises = toAdd.map(studentId =>
+        contributionsApi.create({
+          studentId,
+          contributionType: 'kas_kelas',
+          date,
+          nominal: defaultNominal,
+        })
+      );
+
+      // Remove unchecked contributions
+      const removePromises = toRemove.map(c => contributionsApi.delete(c.id));
+
+      const [added] = await Promise.all([
+        Promise.all(addPromises),
+        Promise.all(removePromises),
+      ]);
+
+      // Update local state
+      setContributions(current => {
+        let next = current.filter(c => !toRemove.some(r => r.id === c.id));
+        next = [...next, ...added];
+        return next;
       });
-    }
-  };
 
-  useEffect(() => {
-    saveStudents(students);
-    if (isHydratedRef.current && !isRefreshingRef.current) {
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+    } catch (err) {
+      console.error('Failed to set checked students:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save contributions');
     }
-  }, [students]);
+  }, [contributions]);
 
-  useEffect(() => {
-    saveCashRecords(cashRecords);
-    if (isHydratedRef.current && !isRefreshingRef.current) {
+  const toggleStudentOnDate = useCallback(async (date: string, studentId: string): Promise<void> => {
+    const existingForDate = contributions.filter(
+      c => c.date === date && c.contributionType === 'kas_kelas'
+    );
+    const existing = existingForDate.find(c => c.studentId === studentId);
+
+    if (existing) {
+      // Remove
+      try {
+        await contributionsApi.delete(existing.id);
+        setContributions(current => current.filter(c => c.id !== existing.id));
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+      } catch (err) {
+        console.error('Failed to toggle student:', err);
+        setError(err instanceof Error ? err.message : 'Failed to update contribution');
+      }
+    } else {
+      // Add
+      try {
+        const settings = await import('../services/api').then(m => m.settingsApi.getAll());
+        const kasKelasSettings = settings.find(s => s.contributionType === 'kas_kelas');
+        const defaultNominal = kasKelasSettings?.defaultNominal || 2000;
+
+        const newContribution = await contributionsApi.create({
+          studentId,
+          contributionType: 'kas_kelas',
+          date,
+          nominal: defaultNominal,
+        });
+
+        setContributions(current => [...current, newContribution]);
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+      } catch (err) {
+        console.error('Failed to toggle student:', err);
+        setError(err instanceof Error ? err.message : 'Failed to add contribution');
+      }
+    }
+  }, [contributions]);
+
+  // Finance operations
+  const addFinanceTransaction = useCallback(
+    async (type: string, date: string, nominal: number, note: string): Promise<boolean> => {
+      const trimmedNote = note.trim();
+      if (!trimmedNote || nominal <= 0) {
+        return false;
+      }
+
+      try {
+        const apiType = type === 'Pemasukan' ? 'pemasukan' : 'pengeluaran';
+      const newTransaction = await financeApi.create({
+        type: apiType,
+        date,
+        nominal,
+        note: trimmedNote,
+      });
+
+      setApiFinanceRecords(current => [...current, newTransaction]);
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+        return true;
+      } catch (err) {
+        console.error('Failed to add finance transaction:', err);
+        setError(err instanceof Error ? err.message : 'Failed to add transaction');
+        return false;
+      }
+    },
+    []
+  );
+
+  const updateFinanceTransaction = useCallback(
+    async (
+      transactionId: string,
+      type: string,
+      date: string,
+      nominal: number,
+      note: string
+    ): Promise<boolean> => {
+      const trimmedNote = note.trim();
+      if (!trimmedNote || nominal <= 0) {
+        return false;
+      }
+
+      try {
+        const apiType = type === 'Pemasukan' ? 'pemasukan' : 'pengeluaran';
+        const updated = await financeApi.update(transactionId, {
+          type: apiType,
+          date,
+          nominal,
+          note: trimmedNote,
+        });
+
+        setApiFinanceRecords(current =>
+          current.map(t => (t.id === transactionId ? updated : t))
+        );
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+        return true;
+      } catch (err) {
+        console.error('Failed to update finance transaction:', err);
+        setError(err instanceof Error ? err.message : 'Failed to update transaction');
+        return false;
+      }
+    },
+    []
+  );
+
+  const deleteFinanceTransaction = useCallback(async (transactionId: string): Promise<void> => {
+    try {
+      await financeApi.delete(transactionId);
+      setApiFinanceRecords(current => current.filter(t => t.id !== transactionId));
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+    } catch (err) {
+      console.error('Failed to delete finance transaction:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete transaction');
     }
-  }, [cashRecords]);
-
-  useEffect(() => {
-    saveFinanceRecords(financeRecords);
-    if (isHydratedRef.current && !isRefreshingRef.current) {
-      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
-    }
-  }, [financeRecords]);
-
-  useEffect(() => {
-    isHydratedRef.current = true;
   }, []);
 
-  useEffect(() => {
-    const handler = () => { void refreshFromSpreadsheet(); };
-    window.addEventListener(REFRESH_SPREADSHEET_EVENT, handler);
-
-    void refreshFromSpreadsheet();
-
-    return () => window.removeEventListener(REFRESH_SPREADSHEET_EVENT, handler);
+  // Legacy compatibility functions
+  const refreshFromStorage = useCallback(() => {
+    // No-op for API version, kept for compatibility
+    console.warn('refreshFromStorage is deprecated with API backend');
   }, []);
 
-  const actions = useMemo(() => {
-    return {
-      addStudent(name: string) {
-        const trimmedName = name.trim();
-        if (!trimmedName) {
-          return false;
-        }
+  const refreshFromSpreadsheet = useCallback(async (): Promise<boolean> => {
+    // Redirect to API reload
+    await loadData();
+    return !error;
+  }, [loadData, error]);
 
-        setStudents((current) => [...current, createStudent(trimmedName)]);
-        return true;
-      },
-      updateStudent(studentId: string, name: string) {
-        const trimmedName = name.trim();
-        if (!trimmedName) {
-          return false;
-        }
-
-        setStudents((current) =>
-          current.map((student) =>
-            student.id === studentId
-              ? { ...student, name: trimmedName, updatedAt: new Date().toISOString() }
-              : student,
-          ),
-        );
-        return true;
-      },
-      deleteStudent(studentId: string) {
-        setStudents((current) => current.filter((student) => student.id !== studentId));
-        setCashRecords((current) => {
-          const nextRecords: Record<string, CashDateRecord> = {};
-
-          for (const [date, record] of Object.entries(current)) {
-            nextRecords[date] = {
-              ...record,
-              checkedStudentIds: record.checkedStudentIds.filter((id) => id !== studentId),
-              updatedAt: new Date().toISOString(),
-            };
-          }
-
-          return nextRecords;
-        });
-      },
-      setCheckedStudents(date: string, checkedStudentIds: string[]) {
-        setCashRecords((current) => ({
-          ...current,
-          [date]: createCashRecord(date, normalizeCheckedIds(checkedStudentIds)),
-        }));
-      },
-      toggleStudentOnDate(date: string, studentId: string) {
-        setCashRecords((current) => {
-          const existing = current[date] ?? createCashRecord(date, []);
-          const checkedStudentIds = existing.checkedStudentIds.includes(studentId)
-            ? existing.checkedStudentIds.filter((id) => id !== studentId)
-            : [...existing.checkedStudentIds, studentId];
-
-          return {
-            ...current,
-            [date]: {
-              ...existing,
-              checkedStudentIds: normalizeCheckedIds(checkedStudentIds),
-              updatedAt: new Date().toISOString(),
-            },
-          };
-        });
-      },
-      saveCurrentState() {
-        saveStudents(students);
-        saveCashRecords(cashRecords);
-        saveFinanceRecords(financeRecords);
-      },
-      addFinanceTransaction(type: FinanceTransaction['type'], date: string, nominal: number, note: string) {
-        const trimmedNote = note.trim();
-        if (!trimmedNote || nominal <= 0) {
-          return false;
-        }
-
-        setFinanceRecords((current) => [...current, createFinanceTransaction(type, date, nominal, trimmedNote)]);
-        return true;
-      },
-      updateFinanceTransaction(
-        transactionId: string,
-        type: FinanceTransaction['type'],
-        date: string,
-        nominal: number,
-        note: string,
-      ) {
-        const trimmedNote = note.trim();
-        if (!trimmedNote || nominal <= 0) {
-          return false;
-        }
-
-        setFinanceRecords((current) =>
-          current.map((transaction) =>
-            transaction.id === transactionId
-              ? { ...transaction, type, date, nominal, note: trimmedNote, updatedAt: new Date().toISOString() }
-              : transaction,
-          ),
-        );
-        return true;
-      },
-      deleteFinanceTransaction(transactionId: string) {
-        setFinanceRecords((current) => current.filter((transaction) => transaction.id !== transactionId));
-      },
-    };
-  }, [cashRecords, financeRecords, students]);
+  const saveCurrentState = useCallback(() => {
+    // No-op for API version (auto-saved), kept for compatibility
+    console.warn('saveCurrentState is deprecated with API backend (auto-saved)');
+  }, []);
 
   return {
     students,
     cashRecords,
     financeRecords,
+    contributions, // Expose raw contributions for new code
+    loading,
+    error,
     refreshFromStorage,
     refreshFromSpreadsheet,
-    ...actions,
+    addStudent,
+    updateStudent,
+    deleteStudent,
+    setCheckedStudents,
+    toggleStudentOnDate,
+    saveCurrentState,
+    addFinanceTransaction,
+    updateFinanceTransaction,
+    deleteFinanceTransaction,
+    reload: loadData, // New: explicit reload function
   };
 }

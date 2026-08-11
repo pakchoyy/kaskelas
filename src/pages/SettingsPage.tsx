@@ -6,7 +6,7 @@ import { usePwaInstall } from '../hooks/usePwaInstall';
 import { requestSync } from '../lib/sync';
 
 export function SettingsPage() {
-  const { settings, setSettings } = useAppSettings();
+  const { settings, setSettings, updateDailyCashNominal } = useAppSettings();
   const { canInstall, install } = usePwaInstall();
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -16,6 +16,7 @@ export function SettingsPage() {
 
   const handleSaveSettings = () => {
     setSettings((current) => ({ ...current }));
+    updateDailyCashNominal(settings.dailyCashNominal);
     requestSync();
   };
 

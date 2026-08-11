@@ -1,0 +1,171 @@
+import { useState, useCallback, useEffect } from 'react';
+import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
+import { mapContributionTypeToApi } from '../lib/apiHelpers';
+
+type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji';
+
+export function useContributions(
+  contributionType: FrontendContributionType,
+  dateOrPeriod: { date?: string; periodMonth?: number; periodYear?: number }
+) {
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [defaultNominal, setDefaultNominal] = useState<number | null>(null);
+
+  const apiType = mapContributionTypeToApi(contributionType);
+
+  // Load contributions
+  const loadContributions = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filters: any = { contributionType: apiType };
+      
+      if (dateOrPeriod.date) {
+        filters.date = dateOrPeriod.date;
+      }
+      
+      if (dateOrPeriod.periodMonth !== undefined) {
+        filters.periodMonth = dateOrPeriod.periodMonth;
+      }
+      
+      if (dateOrPeriod.periodYear !== undefined) {
+        filters.periodYear = dateOrPeriod.periodYear;
+      }
+
+      const data = await contributionsApi.getAll(filters);
+      setContributions(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load contributions';
+      setError(message);
+      console.error('Failed to load contributions:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiType, dateOrPeriod.date, dateOrPeriod.periodMonth, dateOrPeriod.periodYear]);
+
+  // Load default nominal
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await settingsApi.getAll();
+        const setting = settings.find(s => s.contributionType === apiType);
+        setDefaultNominal(setting?.defaultNominal || null);
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    };
+    
+    loadSettings();
+  }, [apiType]);
+
+  // Initial load
+  useEffect(() => {
+    loadContributions();
+  }, [loadContributions]);
+
+  // Add contribution
+  const addContribution = useCallback(
+    async (studentId: string, nominal: number, date?: string, periodMonth?: number, periodYear?: number): Promise<boolean> => {
+      try {
+        const data: any = {
+          studentId,
+          contributionType: apiType,
+          date: date || dateOrPeriod.date || new Date().toISOString().split('T')[0],
+          nominal,
+        };
+
+        if (apiType === 'paguyuban_ngaji') {
+          data.periodMonth = periodMonth ?? dateOrPeriod.periodMonth;
+          data.periodYear = periodYear ?? dateOrPeriod.periodYear;
+        }
+
+        const newContribution = await contributionsApi.create(data);
+        setContributions(current => [...current, newContribution]);
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to add contribution';
+        setError(message);
+        console.error('Failed to add contribution:', err);
+        return false;
+      }
+    },
+    [apiType, dateOrPeriod.date, dateOrPeriod.periodMonth, dateOrPeriod.periodYear]
+  );
+
+  // Update contribution
+  const updateContribution = useCallback(
+    async (contributionId: string, data: { nominal?: number; date?: string }): Promise<boolean> => {
+      try {
+        const updated = await contributionsApi.update(contributionId, data);
+        setContributions(current =>
+          current.map(c => (c.id === contributionId ? updated : c))
+        );
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to update contribution';
+        setError(message);
+        console.error('Failed to update contribution:', err);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Remove contribution
+  const removeContribution = useCallback(async (contributionId: string): Promise<boolean> => {
+    try {
+      await contributionsApi.delete(contributionId);
+      setContributions(current => current.filter(c => c.id !== contributionId));
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to remove contribution';
+      setError(message);
+      console.error('Failed to remove contribution:', err);
+      return false;
+    }
+  }, []);
+
+  // Toggle student contribution
+  const toggleStudent = useCallback(
+    async (studentId: string, nominal: number): Promise<void> => {
+      const existing = contributions.find(c => c.studentId === studentId);
+      
+      if (existing) {
+        await removeContribution(existing.id);
+      } else {
+        await addContribution(studentId, nominal);
+      }
+    },
+    [contributions, addContribution, removeContribution]
+  );
+
+  // Check if student has paid
+  const hasStudentPaid = useCallback(
+    (studentId: string): boolean => {
+      return contributions.some(c => c.studentId === studentId);
+    },
+    [contributions]
+  );
+
+  // Get student IDs who have paid
+  const getPaidStudentIds = useCallback((): string[] => {
+    return contributions.map(c => c.studentId);
+  }, [contributions]);
+
+  return {
+    contributions,
+    loading,
+    error,
+    defaultNominal,
+    loadContributions,
+    addContribution,
+    updateContribution,
+    removeContribution,
+    toggleStudent,
+    hasStudentPaid,
+    getPaidStudentIds,
+  };
+}
