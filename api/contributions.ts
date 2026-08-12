@@ -106,8 +106,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji'].includes(contributionType)) {
-    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji)');
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan'].includes(contributionType)) {
+    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji, tabungan)');
   }
   
   if (!date || !isValidDate(date)) {
@@ -200,7 +200,11 @@ async function handleUpdateContribution(req: VercelRequest, res: VercelResponse)
   }
   
   // Validate updates
-  if (nominal !== undefined && (typeof nominal !== 'number' || nominal <= 0)) {
+  if (nominal !== undefined && (typeof nominal !== 'number' || nominal === 0)) {
+    return sendError(res, 'Nominal must be a non-zero number');
+  }
+
+  if (nominal !== undefined && existing.contributionType !== 'tabungan' && nominal <= 0) {
     return sendError(res, 'Nominal must be a positive number');
   }
   

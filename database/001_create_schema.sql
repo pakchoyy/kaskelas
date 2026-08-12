@@ -20,7 +20,8 @@
 CREATE TYPE contribution_type AS ENUM (
   'kas_kelas',
   'amal_jumat',
-  'paguyuban_ngaji'
+  'paguyuban_ngaji',
+  'tabungan'
 );
 
 CREATE TYPE transaction_type AS ENUM (
@@ -65,9 +66,13 @@ CREATE TABLE contributions (
     REFERENCES students(id) 
     ON DELETE RESTRICT,
   
-  -- Business rules: nominal harus positif
+  -- Business rules: nominal harus positif, kecuali tabungan yang boleh negatif (tarik)
   CONSTRAINT check_nominal_positive 
-    CHECK (nominal > 0),
+    CHECK (
+      (contribution_type = 'tabungan' AND nominal <> 0)
+      OR
+      (contribution_type <> 'tabungan' AND nominal > 0)
+    ),
   
   -- Business rules: Paguyuban Ngaji harus punya period dan nominal tetap 12000
   CONSTRAINT check_paguyuban_period 
