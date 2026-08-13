@@ -21,9 +21,9 @@ const weekDays: Array<{ key: WeekDayKey; label: string }> = [
 
 const contributionTypes = [
   { value: 'kas-kelas' as const, label: 'Kas Kelas' },
+  { value: 'tabungan' as const, label: 'Tabungan' },
   { value: 'amal-jumat' as const, label: 'Amal Jumat' },
   { value: 'paguyuban-ngaji' as const, label: 'Paguyuban Ngaji' },
-  { value: 'tabungan' as const, label: 'Tabungan' },
 ];
 
 function toIsoLocalDate(date: Date): string {
