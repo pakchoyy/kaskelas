@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
@@ -15,8 +15,11 @@ export function useContributions(
 
   const apiType = mapContributionTypeToApi(contributionType);
 
+  const requestSeq = useRef(0);
+
   // Load contributions
   const loadContributions = useCallback(async () => {
+    const seq = ++requestSeq.current;
     try {
       setLoading(true);
       setError(null);
@@ -36,13 +39,19 @@ export function useContributions(
       }
 
       const data = await contributionsApi.getAll(filters);
-      setContributions(data);
+      if (seq === requestSeq.current) {
+        setContributions(data);
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load contributions';
-      setError(message);
-      console.error('Failed to load contributions:', err);
+      if (seq === requestSeq.current) {
+        const message = err instanceof Error ? err.message : 'Failed to load contributions';
+        setError(message);
+        console.error('Failed to load contributions:', err);
+      }
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) {
+        setLoading(false);
+      }
     }
   }, [apiType, dateOrPeriod.date, dateOrPeriod.periodMonth, dateOrPeriod.periodYear]);
 

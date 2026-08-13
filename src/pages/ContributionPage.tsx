@@ -266,6 +266,7 @@ export function ContributionPage() {
 
   const handleAmalJumatSave = async () => {
     setAmalSaving(true);
+    const failed: string[] = [];
     try {
       for (const student of students) {
         const raw = amalJumatNominals[student.id] || '';
@@ -274,14 +275,26 @@ export function ContributionPage() {
 
         if (nominal > 0) {
           if (!existing) {
-            await addAmalContribution(student.id, nominal, fridayDate);
+            const ok = await addAmalContribution(student.id, nominal, fridayDate);
+            if (!ok) failed.push(student.name);
           } else if (existing.nominal !== nominal) {
-            await updateAmalContribution(existing.id, { nominal });
+            const ok = await updateAmalContribution(existing.id, { nominal });
+            if (!ok) failed.push(student.name);
           }
         } else if (existing) {
-          await removeAmalContribution(existing.id);
+          const ok = await removeAmalContribution(existing.id);
+          if (!ok) failed.push(student.name);
         }
       }
+
+      if (failed.length > 0) {
+        alert(`Gagal menyimpan untuk: ${failed.join(', ')}. Coba lagi.`);
+      } else {
+        requestSync();
+      }
+    } catch (err) {
+      console.error('Failed to save amal jumat:', err);
+      alert(`Gagal menyimpan: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setAmalSaving(false);
     }
