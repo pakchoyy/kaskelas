@@ -97,7 +97,7 @@ async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
      RETURNING 
        id, 
        type, 
-       date, 
+       date::text as date, 
        nominal, 
        note, 
        created_at as "createdAt", 
@@ -171,7 +171,7 @@ async function handleUpdateFinance(req: VercelRequest, res: VercelResponse) {
      RETURNING 
        id, 
        type, 
-       date, 
+       date::text as date, 
        nominal, 
        note, 
        created_at as "createdAt", 
@@ -199,7 +199,7 @@ async function handleDeleteFinance(req: VercelRequest, res: VercelResponse) {
      RETURNING 
        id, 
        type, 
-       date, 
+       date::text as date, 
        nominal, 
        note, 
        created_at as "createdAt", 
