@@ -73,14 +73,23 @@ export function useContributions(
     loadSettings();
   }, [apiType]);
 
-  // Initial load
+  // Initial load and reset on context change
   useEffect(() => {
+    // Reset contributions immediately when context changes to prevent stale data
+    setContributions([]);
+    setError(null);
     loadContributions();
   }, [loadContributions]);
 
   // Add contribution
   const addContribution = useCallback(
     async (studentId: string, nominal: number, date?: string, periodMonth?: number, periodYear?: number): Promise<boolean> => {
+      // Prevent action while loading to avoid race condition
+      if (loadingRef.current) {
+        console.warn('Still loading, preventing add contribution');
+        return false;
+      }
+
       try {
         const data: any = {
           studentId,
@@ -110,6 +119,12 @@ export function useContributions(
   // Update contribution
   const updateContribution = useCallback(
     async (contributionId: string, data: { nominal?: number; date?: string }): Promise<boolean> => {
+      // Prevent action while loading to avoid race condition
+      if (loadingRef.current) {
+        console.warn('Still loading, preventing update contribution');
+        return false;
+      }
+
       try {
         const updated = await contributionsApi.update(contributionId, data);
         setContributions(current =>
@@ -128,6 +143,12 @@ export function useContributions(
 
   // Remove contribution
   const removeContribution = useCallback(async (contributionId: string): Promise<boolean> => {
+    // Prevent action while loading to avoid race condition
+    if (loadingRef.current) {
+      console.warn('Still loading, preventing remove contribution');
+      return false;
+    }
+
     try {
       await contributionsApi.delete(contributionId);
       setContributions(current => current.filter(c => c.id !== contributionId));
