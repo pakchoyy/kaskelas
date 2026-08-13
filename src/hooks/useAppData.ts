@@ -47,9 +47,10 @@ export function useAppData() {
   // Transform contributions to cashRecords format for backward compatibility
   const cashRecords = useMemo(() => {
     const records: Record<string, CashDateRecord> = {};
+    const activeStudentIds = new Set(students.map(s => s.id));
     
     contributions
-      .filter(c => c.contributionType === 'kas_kelas')
+      .filter(c => c.contributionType === 'kas_kelas' && activeStudentIds.has(c.studentId))
       .forEach(c => {
         if (!records[c.date]) {
           records[c.date] = {
@@ -66,7 +67,7 @@ export function useAppData() {
       });
     
     return records;
-  }, [contributions]);
+  }, [contributions, students]);
 
   // Load data from API
   const loadData = useCallback(async () => {

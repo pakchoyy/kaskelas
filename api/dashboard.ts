@@ -20,8 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `WITH metrics AS (
         SELECT
           (SELECT COUNT(*) FROM students WHERE active = true) as total_students,
-          (SELECT COALESCE(SUM(nominal), 0) FROM contributions WHERE contribution_type = 'kas_kelas') as total_kas,
-          (SELECT COALESCE(SUM(nominal), 0) FROM contributions WHERE contribution_type::text = 'tabungan') as total_tabungan,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'kas_kelas' AND s.active = true) as total_kas,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan' AND s.active = true) as total_tabungan,
           (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pemasukan') as total_pemasukan,
           (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pengeluaran') as total_pengeluaran
       )

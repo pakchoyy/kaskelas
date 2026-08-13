@@ -80,7 +80,7 @@ function getMonthInfo(dateIso: string): { year: number; month: number; monthName
 }
 
 export function ContributionPage() {
-  const { students, cashRecords, setCheckedStudents, saveCurrentState, contributions } = useAppData();
+  const { students, cashRecords, setCheckedStudents, saveCurrentState, contributions, reload } = useAppData();
   const { settings, updateDailyCashNominal } = useAppSettings();
   
   const [contributionType, setContributionType] = useState<ContributionType>('kas-kelas');
@@ -100,6 +100,11 @@ export function ContributionPage() {
   const [tabunganDate, setTabunganDate] = useState(todayIsoDate());
   const [tabunganNominals, setTabunganNominals] = useState<Record<string, string>>({});
   const [tabunganSaving, setTabunganSaving] = useState(false);
+
+  // State untuk Edit Saldo Tabungan per siswa
+  const [editSaldoStudent, setEditSaldoStudent] = useState<{ id: string; name: string } | null>(null);
+  const [editSaldoValue, setEditSaldoValue] = useState('');
+  const [editSaldoSaving, setEditSaldoSaving] = useState(false);
 
   // Kas Kelas logic
   const weekDates = useMemo(() => getWeekDates(anchorDate), [anchorDate]);
@@ -339,11 +344,60 @@ export function ContributionPage() {
           await removeTabunganContribution(existing.id);
         }
       }
+      await reload();
     } catch (err) {
       console.error('Failed to save tabungan:', err);
       alert(`Gagal menyimpan: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setTabunganSaving(false);
+    }
+  };
+
+  const handleEditSaldoOpen = (student: { id: string; name: string }) => {
+    const balance = tabunganBalances.find((b) => b.student.id === student.id)?.balance ?? 0;
+    setEditSaldoStudent(student);
+    setEditSaldoValue(String(balance));
+  };
+
+  const handleEditSaldoSave = async () => {
+    if (!editSaldoStudent) {
+      return;
+    }
+
+    const target = Number(editSaldoValue);
+    if (!Number.isFinite(target) || target < 0) {
+      alert('Masukkan saldo yang valid (angka 0 atau lebih).');
+      return;
+    }
+
+    const current = tabunganBalances.find((b) => b.student.id === editSaldoStudent.id)?.balance ?? 0;
+    const delta = Math.round(target - current);
+
+    setEditSaldoSaving(true);
+    try {
+      if (delta !== 0) {
+        const today = todayIsoDate();
+        const existingToday = contributions.find(
+          (c) =>
+            c.studentId === editSaldoStudent.id &&
+            c.contributionType === 'tabungan' &&
+            c.date === today
+        );
+
+        if (existingToday) {
+          await updateTabunganContribution(existingToday.id, { nominal: existingToday.nominal + delta });
+        } else {
+          await addTabunganContribution(editSaldoStudent.id, delta, today);
+        }
+      }
+      setEditSaldoStudent(null);
+      setEditSaldoValue('');
+      await reload();
+    } catch (err) {
+      console.error('Failed to edit saldo:', err);
+      alert(`Gagal mengubah saldo: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setEditSaldoSaving(false);
     }
   };
 
@@ -756,7 +810,17 @@ export function ContributionPage() {
                       <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                          <p className="mt-0.5 text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <p className="text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleEditSaldoOpen({ id: student.id, name: student.name })}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              aria-label={`Edit saldo ${student.name}`}
+                            >
+                              <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                          </div>
                         </div>
                         <input
                           type="number"
@@ -807,8 +871,7 @@ export function ContributionPage() {
         title="Edit Nominal"
         description="Ubah nominal iuran harian Kas Kelas"
         onClose={() => setEditNominalOpen(false)}
-      >
-        <div className="space-y-4">
+      >        <div className="space-y-4">
           <div>
             <label htmlFor="nominal" className="mb-2 block text-sm font-medium text-slate-700">
               Nominal iuran
@@ -835,6 +898,60 @@ export function ContributionPage() {
               className="flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 text-sm font-semibold text-white"
             >
               Simpan
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Bottom Sheet - Edit Saldo Tabungan */}
+      <BottomSheet
+        open={editSaldoStudent !== null}
+        title="Edit Saldo Tabungan"
+        description={editSaldoStudent ? `Koreksi total saldo ${editSaldoStudent.name}` : undefined}
+        onClose={() => {
+          if (!editSaldoSaving) {
+            setEditSaldoStudent(null);
+            setEditSaldoValue('');
+          }
+        }}
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="editSaldo" className="mb-2 block text-sm font-medium text-slate-700">
+              Total saldo yang benar
+            </label>
+            <input
+              id="editSaldo"
+              type="number"
+              min="0"
+              step="1000"
+              value={editSaldoValue}
+              onChange={(e) => setEditSaldoValue(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Saldo akan disesuaikan (ditambah/dikurangi) agar total menjadi nominal di atas.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditSaldoStudent(null);
+                setEditSaldoValue('');
+              }}
+              disabled={editSaldoSaving}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleEditSaldoSave}
+              disabled={editSaldoSaving}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {editSaldoSaving ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>
         </div>
