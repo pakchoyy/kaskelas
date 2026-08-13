@@ -16,10 +16,12 @@ export function useContributions(
   const apiType = mapContributionTypeToApi(contributionType);
 
   const requestSeq = useRef(0);
+  const loadingRef = useRef(true);
 
   // Load contributions
   const loadContributions = useCallback(async () => {
     const seq = ++requestSeq.current;
+    loadingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -51,6 +53,7 @@ export function useContributions(
     } finally {
       if (seq === requestSeq.current) {
         setLoading(false);
+        loadingRef.current = false;
       }
     }
   }, [apiType, dateOrPeriod.date, dateOrPeriod.periodMonth, dateOrPeriod.periodYear]);
@@ -169,6 +172,7 @@ export function useContributions(
     loading,
     error,
     defaultNominal,
+    loadingRef,
     loadContributions,
     addContribution,
     updateContribution,

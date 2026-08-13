@@ -145,6 +145,7 @@ export function ContributionPage() {
   const {
     contributions: amalRecords,
     loading: amalLoading,
+    loadingRef: amalLoadingRef,
     addContribution: addAmalContribution,
     updateContribution: updateAmalContribution,
     removeContribution: removeAmalContribution,
@@ -159,11 +160,19 @@ export function ContributionPage() {
 
   // Sync Amal Jumat inputs with saved contributions when navigating weeks
   const amalSyncedDateRef = useRef<string | null>(null);
+
+  // Reset Amal Jumat inputs immediately when navigating weeks so stale
+  // values are never edited while the new week is still loading
+  useEffect(() => {
+    setAmalJumatNominals({});
+    amalSyncedDateRef.current = null;
+  }, [fridayDate]);
+
   useEffect(() => {
     if (amalSyncedDateRef.current === fridayDate) {
       return;
     }
-    if (amalLoading) {
+    if (amalLoadingRef.current) {
       return;
     }
     const next: Record<string, string> = {};
@@ -178,6 +187,7 @@ export function ContributionPage() {
   const {
     contributions: tabunganDayRecords,
     loading: tabunganLoading,
+    loadingRef: tabunganLoadingRef,
     addContribution: addTabunganContribution,
     updateContribution: updateTabunganContribution,
     removeContribution: removeTabunganContribution,
@@ -185,11 +195,19 @@ export function ContributionPage() {
 
   // Sync Tabungan inputs with saved contributions when navigating days
   const tabunganSyncedDateRef = useRef<string | null>(null);
+
+  // Reset Tabungan inputs immediately when navigating days so stale values
+  // are never edited while the new day is still loading
+  useEffect(() => {
+    setTabunganNominals({});
+    tabunganSyncedDateRef.current = null;
+  }, [tabunganDate]);
+
   useEffect(() => {
     if (tabunganSyncedDateRef.current === tabunganDate) {
       return;
     }
-    if (tabunganLoading) {
+    if (tabunganLoadingRef.current) {
       return;
     }
     const next: Record<string, string> = {};
@@ -617,7 +635,7 @@ export function ContributionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {amalLoading && amalRecords.length === 0 ? (
+              {amalLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
               ) : students.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
@@ -798,7 +816,7 @@ export function ContributionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {tabunganLoading && tabunganDayRecords.length === 0 ? (
+              {tabunganLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
               ) : students.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</p>
