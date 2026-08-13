@@ -7,7 +7,7 @@ import { ChevronDown } from 'lucide-react';
 import { recapApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
-type ContributionFilter = 'semua' | 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji';
+type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji';
 
 export function RecapPage() {
   const [refreshMessage, setRefreshMessage] = useState('');
@@ -103,6 +103,7 @@ export function RecapPage() {
               <span>
                 {contributionFilter === 'semua' && 'Semua Jenis'}
                 {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
+                {contributionFilter === 'tabungan' && 'Tabungan'}
                 {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
                 {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
               </span>
@@ -122,6 +123,18 @@ export function RecapPage() {
                   }`}
                 >
                   Kas Kelas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContributionFilter('tabungan');
+                    setFilterOpen(false);
+                  }}
+                  className={`block w-full px-4 py-3 text-left text-sm ${
+                    contributionFilter === 'tabungan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
+                  }`}
+                >
+                  Tabungan
                 </button>
                 <button
                   type="button"
