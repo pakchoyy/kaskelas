@@ -1,13 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { defaultAppSettings, loadAppSettings, saveAppSettings, type AppSettings } from '../lib/appSettings';
 import { settingsApi } from '../services/api';
+import { dispatchAppEvent, SETTINGS_UPDATED_EVENT } from '../lib/events';
 
 export function useAppSettings() {
   const [settings, setSettings] = useState<AppSettings>(() => loadAppSettings());
+  const settingsRef = useRef(settings);
 
   useEffect(() => {
+    settingsRef.current = settings;
     saveAppSettings(settings);
+    dispatchAppEvent(SETTINGS_UPDATED_EVENT);
   }, [settings]);
+
+  // Re-read settings when changed elsewhere (e.g. Settings page)
+  useEffect(() => {
+    const handler = () => {
+      const next = loadAppSettings();
+      const prev = settingsRef.current;
+      if (JSON.stringify(next) !== JSON.stringify(prev)) {
+        settingsRef.current = next;
+        setSettings(next);
+      }
+    };
+    window.addEventListener(SETTINGS_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_UPDATED_EVENT, handler);
+  }, []);
 
   // Sync kas_kelas default nominal from backend settings (source of truth)
   useEffect(() => {

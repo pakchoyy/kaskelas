@@ -25,10 +25,14 @@ export function AppLayout() {
                     Bantu Guru Yuk
                   </p>
                   <h1 className="mt-1 truncate text-base font-semibold text-slate-900">
-                    {settings.className?.trim() || 'Kas Kelas'}
+                    {settings.className?.trim()
+                      ? `Kas Kelas ${settings.className.trim()}`
+                      : 'Kas Kelas'}
                   </h1>
                   <p className="truncate text-xs text-slate-500">
-                    {settings.schoolYear?.trim() || 'Data tersimpan online'}
+                    {settings.schoolYear?.trim()
+                      ? `T.P. ${settings.schoolYear.trim()}`
+                      : 'Data tersimpan online'}
                   </p>
                 </div>
               </div>

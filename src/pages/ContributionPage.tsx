@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Save, CheckCheck, Edit2, ChevronDown, Plus, Minus } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Save, Edit2, ChevronDown } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useContributions } from '../hooks/useContributions';
-import { contributionsApi } from '../services/api';
 import { formatCurrency } from '../lib/format';
-import { formatDisplayDate, formatWeekday, todayIsoDate } from '../lib/date';
+import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
 
 type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan';
@@ -81,7 +80,7 @@ function getMonthInfo(dateIso: string): { year: number; month: number; monthName
 }
 
 export function ContributionPage() {
-  const { students, cashRecords, setCheckedStudents, saveCurrentState, contributions, reload } = useAppData();
+  const { students, cashRecords, setCheckedStudents, saveCurrentState, contributions } = useAppData();
   const { settings, updateDailyCashNominal } = useAppSettings();
   
   const [contributionType, setContributionType] = useState<ContributionType>('kas-kelas');
@@ -97,19 +96,13 @@ export function ContributionPage() {
   const [amalSaving, setAmalSaving] = useState(false);
 
   // State untuk Tabungan
-  const [tabunganSheetOpen, setTabunganSheetOpen] = useState(false);
   const [tabunganMode, setTabunganMode] = useState<'setor' | 'tarik'>('setor');
-  const [tabunganStudentId, setTabunganStudentId] = useState<string | null>(null);
-  const [tabunganNominal, setTabunganNominal] = useState('');
   const [tabunganDate, setTabunganDate] = useState(todayIsoDate());
+  const [tabunganNominals, setTabunganNominals] = useState<Record<string, string>>({});
   const [tabunganSaving, setTabunganSaving] = useState(false);
 
   // Kas Kelas logic
   const weekDates = useMemo(() => getWeekDates(anchorDate), [anchorDate]);
-  const isCurrentWeek = useMemo(() => {
-    const todayWeek = getWeekDates(todayIsoDate());
-    return weekDates.senin === todayWeek.senin;
-  }, [weekDates.senin]);
 
   const weekSummary = useMemo(() => {
     const dailyNominal = settings.dailyCashNominal || 2000;
@@ -176,6 +169,32 @@ export function ContributionPage() {
     amalSyncedDateRef.current = fridayDate;
   }, [fridayDate, amalLoading, amalRecords]);
 
+  // Tabungan logic - per-day records
+  const {
+    contributions: tabunganDayRecords,
+    loading: tabunganLoading,
+    addContribution: addTabunganContribution,
+    updateContribution: updateTabunganContribution,
+    removeContribution: removeTabunganContribution,
+  } = useContributions('tabungan', { date: tabunganDate });
+
+  // Sync Tabungan inputs with saved contributions when navigating days
+  const tabunganSyncedDateRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (tabunganSyncedDateRef.current === tabunganDate) {
+      return;
+    }
+    if (tabunganLoading) {
+      return;
+    }
+    const next: Record<string, string> = {};
+    tabunganDayRecords.forEach((c) => {
+      next[c.studentId] = String(c.nominal);
+    });
+    setTabunganNominals(next);
+    tabunganSyncedDateRef.current = tabunganDate;
+  }, [tabunganDate, tabunganLoading, tabunganDayRecords]);
+
   // Paguyuban Ngaji logic
   const monthInfo = useMemo(() => getMonthInfo(anchorDate), [anchorDate]);
   const paguyubanNominal = 12000;
@@ -211,11 +230,6 @@ export function ContributionPage() {
   const totalTabungan = useMemo(() => {
     return tabunganBalances.reduce((sum, item) => sum + item.balance, 0);
   }, [tabunganBalances]);
-
-  const tabunganActiveStudent = useMemo(
-    () => students.find(s => s.id === tabunganStudentId),
-    [tabunganStudentId, students],
-  );
 
   const handleKasKelasToggle = (studentId: string, dayKey: WeekDayKey) => {
     const dateIso = weekDates[dayKey];
@@ -281,39 +295,37 @@ export function ContributionPage() {
     alert('Data Paguyuban Ngaji tersimpan otomatis.');
   };
 
-  const handleTabunganOpen = (studentId: string, mode: 'setor' | 'tarik') => {
-    setTabunganStudentId(studentId);
-    setTabunganMode(mode);
-    setTabunganNominal('');
-    setTabunganDate(todayIsoDate());
-    setTabunganSheetOpen(true);
+  const handleTabunganPrevDay = () => {
+    setTabunganDate((prev) => shiftIsoDate(prev, -1) || todayIsoDate());
   };
 
-  const handleTabunganClose = () => {
-    setTabunganSheetOpen(false);
-    setTabunganStudentId(null);
-    setTabunganNominal('');
+  const handleTabunganNextDay = () => {
+    setTabunganDate((prev) => shiftIsoDate(prev, 1) || todayIsoDate());
+  };
+
+  const handleTabunganChange = (studentId: string, value: string) => {
+    setTabunganNominals((prev) => ({ ...prev, [studentId]: value }));
   };
 
   const handleTabunganSave = async () => {
-    if (!tabunganStudentId || !tabunganNominal || Number(tabunganNominal) <= 0) {
-      alert('Mohon isi nominal dengan benar (harus lebih dari 0)');
-      return;
-    }
-
     setTabunganSaving(true);
     try {
-      const amount = tabunganMode === 'setor' ? Number(tabunganNominal) : -Number(tabunganNominal);
-      
-      await contributionsApi.create({
-        studentId: tabunganStudentId,
-        contributionType: 'tabungan',
-        date: tabunganDate,
-        nominal: amount,
-      });
+      for (const student of students) {
+        const raw = tabunganNominals[student.id] || '';
+        const nominal = parseInt(raw, 10) || 0;
+        const existing = tabunganDayRecords.find((c) => c.studentId === student.id);
 
-      await reload();
-      handleTabunganClose();
+        if (nominal > 0) {
+          const signedNominal = tabunganMode === 'setor' ? nominal : -nominal;
+          if (!existing) {
+            await addTabunganContribution(student.id, signedNominal, tabunganDate);
+          } else if (existing.nominal !== signedNominal) {
+            await updateTabunganContribution(existing.id, { nominal: signedNominal });
+          }
+        } else if (existing) {
+          await removeTabunganContribution(existing.id);
+        }
+      }
     } catch (err) {
       console.error('Failed to save tabungan:', err);
       alert(`Gagal menyimpan: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -441,12 +453,7 @@ export function ContributionPage() {
                 <button
                   type="button"
                   onClick={handleNextPeriod}
-                  disabled={isCurrentWeek}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                    isCurrentWeek
-                      ? 'bg-slate-50 text-slate-300'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
                 >
                   <ChevronRight className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -677,98 +684,109 @@ export function ContributionPage() {
               <p className="mt-1 text-2xl font-semibold text-brand-700">{formatCurrency(totalTabungan)}</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
-              {students.length === 0 ? (
-                <div className="p-4 text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
+              <div className="mb-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleTabunganPrevDay}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                >
+                  <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                </button>
+                <p className="text-sm font-medium text-slate-700">
+                  {formatWeekday(tabunganDate)}, {formatDisplayDate(tabunganDate)}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleTabunganNextDay}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                >
+                  <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTabunganMode('setor')}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    tabunganMode === 'setor'
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  Setor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTabunganMode('tarik')}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    tabunganMode === 'tarik'
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  Tarik
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {tabunganLoading && tabunganDayRecords.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
+              ) : students.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</p>
               ) : (
-                <ul className="divide-y divide-slate-100">
-                  {tabunganBalances.map(({ student, balance }, index) => (
-                    <li key={student.id} className={`flex items-center justify-between gap-3 px-4 py-4 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900">{student.name}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
+                <div className="space-y-2">
+                  {students.map((student, index) => {
+                    const balance = tabunganBalances.find((item) => item.student.id === student.id)?.balance ?? 0;
+                    return (
+                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
+                        </div>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          step="1000"
+                          value={tabunganNominals[student.id] || ''}
+                          onChange={(e) => handleTabunganChange(student.id, e.target.value)}
+                          className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-right text-sm font-medium text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                        />
                       </div>
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleTabunganOpen(student.id, 'setor')}
-                          className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white"
-                        >
-                          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                          Setor
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleTabunganOpen(student.id, 'tarik')}
-                          disabled={balance <= 0}
-                          className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-30"
-                        >
-                          <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                          Tarik
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                    );
+                  })}
+                </div>
               )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-slate-500">Total</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-lg font-semibold text-slate-900">
+                    {formatCurrency(
+                      Object.values(tabunganNominals).reduce((sum, val) => {
+                        const num = parseInt(val, 10) || 0;
+                        return sum + num;
+                      }, 0)
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleTabunganSave}
+                    disabled={tabunganSaving}
+                    className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    <Save className="h-4 w-4" strokeWidth={2} />
+                    {tabunganSaving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
+              </div>
             </div>
           </>
         )}
       </div>
-
-      {/* Bottom Sheet - Tabungan */}
-      <BottomSheet
-        open={tabunganSheetOpen}
-        onClose={handleTabunganClose}
-        title={tabunganMode === 'setor' ? 'Setor Tabungan' : 'Tarik Tabungan'}
-      >
-        <div className="space-y-4">
-          {tabunganActiveStudent && (
-            <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Siswa</p>
-              <p className="mt-0.5 text-sm font-semibold text-slate-900">{tabunganActiveStudent.name}</p>
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="tabungan-nominal" className="block text-sm font-medium text-slate-700">
-              Nominal
-            </label>
-            <input
-              id="tabungan-nominal"
-              type="number"
-              step="1000"
-              placeholder="0"
-              value={tabunganNominal}
-              onChange={(e) => setTabunganNominal(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="tabungan-date" className="block text-sm font-medium text-slate-700">
-              Tanggal
-            </label>
-            <input
-              id="tabungan-date"
-              type="date"
-              value={tabunganDate}
-              onChange={(e) => setTabunganDate(e.target.value)}
-              max={todayIsoDate()}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleTabunganSave}
-            disabled={tabunganSaving || !tabunganNominal || Number(tabunganNominal) <= 0}
-            className="h-12 w-full rounded-xl bg-brand-600 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {tabunganSaving ? 'Menyimpan...' : tabunganMode === 'setor' ? 'Setor' : 'Tarik'}
-          </button>
-        </div>
-      </BottomSheet>
 
       {/* Bottom Sheet - Edit Nominal Kas Kelas */}
       <BottomSheet
