@@ -4,6 +4,8 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { InstallBanner } from '../components/InstallBanner';
 import { useAppSettings } from '../hooks/useAppSettings';
 
+declare const __BUILD_ID__: string;
+
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +35,9 @@ export function AppLayout() {
                     {settings.schoolYear?.trim()
                       ? `T.P. ${settings.schoolYear.trim()}`
                       : 'Data tersimpan online'}
+                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+                      {__BUILD_ID__}
+                    </span>
                   </p>
                 </div>
               </div>
