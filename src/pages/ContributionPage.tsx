@@ -2,9 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Save, Edit2, ChevronDown } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
+import { NominalStepper } from '../components/NominalStepper';
+import { NotesSection } from '../components/NotesSection';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useContributions } from '../hooks/useContributions';
+import { useNotes } from '../hooks/useNotes';
+import { useAmalJumatMarker } from '../hooks/useAmalJumatMarker';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
@@ -253,6 +257,13 @@ export function ContributionPage() {
   const totalTabungan = useMemo(() => {
     return tabunganBalances.reduce((sum, item) => sum + item.balance, 0);
   }, [tabunganBalances]);
+
+  // Notes: Kas Kelas per minggu (kunci = hari Senin), Tabungan per hari
+  const kasKelasNotes = useNotes('kas_kelas', weekDates.senin);
+  const tabunganNotes = useNotes('tabungan', tabunganDate);
+
+  // Amal Jumat marker: penanda "diserahkan" per tanggal Jumat
+  const amalMarker = useAmalJumatMarker(fridayDate);
 
   const handleKasKelasToggle = (studentId: string, dayKey: WeekDayKey) => {
     const dateIso = weekDates[dayKey];
@@ -605,6 +616,14 @@ export function ContributionPage() {
                 </div>
               </div>
             </div>
+
+            <NotesSection
+              notes={kasKelasNotes.notes}
+              loading={kasKelasNotes.loading}
+              onAdd={kasKelasNotes.addNote}
+              onUpdate={kasKelasNotes.updateNote}
+              onDelete={kasKelasNotes.removeNote}
+            />
           </>
         )}
 
@@ -644,13 +663,9 @@ export function ContributionPage() {
                   {students.map((student, index) => (
                     <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                       <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        step="1000"
+                      <NominalStepper
                         value={amalJumatNominals[student.id] || ''}
-                        onChange={(e) => handleAmalJumatChange(student.id, e.target.value)}
-                        className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-right text-sm font-medium text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                        onChange={(value) => handleAmalJumatChange(student.id, value)}
                       />
                     </div>
                   ))}
@@ -676,6 +691,31 @@ export function ContributionPage() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
+              <button
+                type="button"
+                onClick={() => amalMarker.toggle()}
+                disabled={amalMarker.loading || amalMarker.saving}
+                className="flex w-full items-center justify-between gap-3"
+              >
+                <span className="text-left">
+                  <span className="block text-sm font-semibold text-slate-900">Diserahkan</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Penanda uang amal Jumat sudah diserahkan
+                  </span>
+                </span>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
+                    amalMarker.handedOver
+                      ? 'bg-brand-600 text-white'
+                      : 'border-2 border-slate-300 text-transparent'
+                  }`}
+                >
+                  <Check className="h-5 w-5" strokeWidth={3} />
+                </span>
+              </button>
             </div>
           </>
         )}
@@ -840,13 +880,9 @@ export function ContributionPage() {
                             </button>
                           </div>
                         </div>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          step="1000"
+                        <NominalStepper
                           value={tabunganNominals[student.id] || ''}
-                          onChange={(e) => handleTabunganChange(student.id, e.target.value)}
-                          className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-right text-sm font-medium text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                          onChange={(value) => handleTabunganChange(student.id, value)}
                         />
                       </div>
                     );
@@ -879,6 +915,14 @@ export function ContributionPage() {
                 </div>
               </div>
             </div>
+
+            <NotesSection
+              notes={tabunganNotes.notes}
+              loading={tabunganNotes.loading}
+              onAdd={tabunganNotes.addNote}
+              onUpdate={tabunganNotes.updateNote}
+              onDelete={tabunganNotes.removeNote}
+            />
           </>
         )}
       </div>

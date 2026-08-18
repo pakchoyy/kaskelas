@@ -42,6 +42,23 @@ export type ContributionSetting = {
   updatedAt: string;
 };
 
+export type Note = {
+  id: string;
+  scope: string;
+  periodKey: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AmalJumatMarker = {
+  id: string;
+  fridayDate: string;
+  handedOver: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // API Response types
 export type ApiResponse<T = any> = {
   success: boolean;

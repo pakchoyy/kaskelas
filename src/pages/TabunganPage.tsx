@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
+import { NominalStepper } from '../components/NominalStepper';
 import { useAppData } from '../hooks/useAppData';
 import { contributionsApi } from '../services/api';
 import { formatCurrency } from '../lib/format';
@@ -142,14 +143,10 @@ export function TabunganPage() {
             <label htmlFor="nominal" className="block text-sm font-medium text-slate-700">
               Nominal
             </label>
-            <input
-              id="nominal"
-              type="number"
-              step="1000"
-              placeholder="0"
+            <NominalStepper
               value={nominal}
-              onChange={(e) => setNominal(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              onChange={setNominal}
+              inputClassName="w-full"
             />
           </div>
 

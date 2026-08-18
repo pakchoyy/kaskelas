@@ -110,6 +110,23 @@ export type ContributionSetting = {
   updatedAt: string;
 };
 
+export type Note = {
+  id: string;
+  scope: string;
+  periodKey: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AmalJumatMarker = {
+  id: string;
+  fridayDate: string;
+  handedOver: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // Students API
 export const studentsApi = {
   async getAll(includeInactive = false): Promise<Student[]> {
@@ -252,6 +269,56 @@ export const settingsApi = {
     return fetchApi<ContributionSetting>('/settings', {
       method: 'PATCH',
       body: JSON.stringify({ contributionType, ...data }),
+    });
+  },
+};
+
+// Notes API
+export const notesApi = {
+  async getAll(filters?: {
+    scope?: string;
+    periodKey?: string;
+  }): Promise<Note[]> {
+    const params = new URLSearchParams();
+    
+    if (filters?.scope) params.set('scope', filters.scope);
+    if (filters?.periodKey) params.set('period_key', filters.periodKey);
+    
+    const query = params.toString() ? `?${params}` : '';
+    return fetchApi<Note[]>(`/notes${query}`);
+  },
+  
+  async create(data: { scope: string; periodKey: string; text: string }): Promise<Note> {
+    return fetchApi<Note>('/notes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  async update(id: string, data: { text: string }): Promise<Note> {
+    return fetchApi<Note>(`/notes?id=${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  async delete(id: string): Promise<Note> {
+    return fetchApi<Note>(`/notes?id=${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Amal Jumat Marker API
+export const amalJumatApi = {
+  async get(fridayDate: string): Promise<AmalJumatMarker | null> {
+    return fetchApi<AmalJumatMarker | null>(`/markers?friday_date=${encodeURIComponent(fridayDate)}`);
+  },
+  
+  async upsert(fridayDate: string, handedOver: boolean): Promise<AmalJumatMarker> {
+    return fetchApi<AmalJumatMarker>('/markers', {
+      method: 'PATCH',
+      body: JSON.stringify({ fridayDate, handedOver }),
     });
   },
 };
