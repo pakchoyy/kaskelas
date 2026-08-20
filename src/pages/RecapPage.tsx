@@ -17,6 +17,7 @@ export function RecapPage() {
   const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('kas-kelas');
   const [kasView, setKasView] = useState<KasView>('per-siswa');
   const [kasViewOpen, setKasViewOpen] = useState(false);
+  const [kasDetailOpen, setKasDetailOpen] = useState(false);
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +219,7 @@ export function RecapPage() {
             className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
           >
             <span>
-              {kasView === 'per-siswa' ? 'Kas Per Siswa' : 'Total Kas'}
+              {kasView === 'per-siswa' ? 'Kas Per Siswa' : 'Kas Akhir Siswa'}
             </span>
             <ChevronDown className="h-5 w-5 text-slate-400" strokeWidth={2} />
           </button>
@@ -247,7 +248,7 @@ export function RecapPage() {
                   kasView === 'total-kas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
                 }`}
               >
-                Total Kas
+                Kas Akhir Siswa
               </button>
             </div>
           )}
@@ -255,55 +256,70 @@ export function RecapPage() {
 
         {kasView === 'total-kas' && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h3 className="text-base font-semibold text-slate-900">Total Kas</h3>
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h3 className="text-base font-semibold text-slate-900">Kas Akhir Siswa</h3>
+              <button
+                type="button"
+                onClick={() => setKasDetailOpen(!kasDetailOpen)}
+                className={`flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition ${
+                  kasDetailOpen
+                    ? 'border-brand-600 bg-brand-600 text-white'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                {kasDetailOpen ? 'DETAIL' : 'RINGKAS'}
+              </button>
             </div>
             <table className="w-full">
               <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Komponen</th>
-                  <th className="px-4 py-3 text-right font-medium">Total Kelas</th>
-                  <th className="px-4 py-3 text-right font-medium">Per Siswa</th>
+                  <th className="px-4 py-3 font-medium">No</th>
+                  <th className="px-4 py-3 font-medium">Nama</th>
+                  {kasDetailOpen && (
+                    <>
+                      <th className="px-4 py-3 text-right font-medium">Kas Siswa</th>
+                      <th className="px-4 py-3 text-right font-medium">+ Pemasukan</th>
+                      <th className="px-4 py-3 text-right font-medium">− Pengeluaran</th>
+                    </>
+                  )}
+                  <th className="px-4 py-3 text-right font-medium">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(() => {
                   const n = recap.perStudent.length;
+                  const bagianPemasukan = n > 0 ? Math.round(recap.totalPemasukanLain / n) : 0;
+                  const bagianPengeluaran = n > 0 ? Math.round(recap.totalPengeluaran / n) : 0;
+                  const totalAkumulasi = bagianPemasukan - bagianPengeluaran;
                   return (
                     <>
-                      <tr className="bg-white">
-                        <td className="px-4 py-3 font-medium text-slate-900">Kas Kelas</td>
-                        <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(recap.totalKasMasuk)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-brand-700">
-                          {formatCurrency(n > 0 ? Math.round(recap.totalKasMasuk / n) : 0)}
-                        </td>
-                      </tr>
-                      <tr className="bg-emerald-50">
-                        <td className="px-4 py-3 font-medium text-slate-900">Pemasukan Lain</td>
-                        <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(recap.totalPemasukanLain)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-brand-700">
-                          {formatCurrency(n > 0 ? Math.round(recap.totalPemasukanLain / n) : 0)}
-                        </td>
-                      </tr>
-                      <tr className="bg-white">
-                        <td className="px-4 py-3 font-medium text-slate-900">Pengeluaran</td>
-                        <td className="px-4 py-3 text-right text-slate-600">-{formatCurrency(recap.totalPengeluaran)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-brand-700">
-                          -{formatCurrency(n > 0 ? Math.round(recap.totalPengeluaran / n) : 0)}
-                        </td>
-                      </tr>
-                      <tr className="bg-brand-50">
-                        <td className="px-4 py-3 font-semibold text-slate-900">Rata-rata Kas per Siswa</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-900">{formatCurrency(recap.saldoKelas)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-brand-700">
-                          {formatCurrency(n > 0 ? Math.round(recap.saldoKelas / n) : 0)}
-                        </td>
-                      </tr>
+                      {recap.perStudent.map((student, index) => {
+                        const kasAkhir = student.total + totalAkumulasi;
+                        return (
+                          <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
+                            <td className="px-4 py-3 text-slate-500">{student.number}</td>
+                            <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
+                            {kasDetailOpen && (
+                              <>
+                                <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(student.total)}</td>
+                                <td className="px-4 py-3 text-right text-slate-600">+{formatCurrency(bagianPemasukan)}</td>
+                                <td className="px-4 py-3 text-right text-slate-600">−{formatCurrency(bagianPengeluaran)}</td>
+                              </>
+                            )}
+                            <td className="truncate px-4 py-3 text-right font-semibold text-brand-700">
+                              {formatCurrency(kasAkhir)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </>
                   );
                 })()}
               </tbody>
             </table>
+            {recap.perStudent.length === 0 && (
+              <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+            )}
           </div>
         )}
 
