@@ -9,12 +9,14 @@ import { useAppSettings } from '../hooks/useAppSettings';
 import { useContributions } from '../hooks/useContributions';
 import { useNotes } from '../hooks/useNotes';
 import { useAmalJumatMarker } from '../hooks/useAmalJumatMarker';
+import { settingsApi } from '../services/api';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
 
-type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan';
+type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks';
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
+type SemesterNumber = 1 | 2;
 
 const weekDays: Array<{ key: WeekDayKey; label: string }> = [
   { key: 'senin', label: 'Sen' },
@@ -28,6 +30,12 @@ const contributionTypes = [
   { value: 'tabungan' as const, label: 'Tabungan' },
   { value: 'amal-jumat' as const, label: 'Amal Jumat' },
   { value: 'paguyuban-ngaji' as const, label: 'Paguyuban Ngaji' },
+  { value: 'lks' as const, label: 'LKS' },
+];
+
+const semesterOptions: Array<{ value: SemesterNumber; label: string }> = [
+  { value: 1, label: 'Semester 1' },
+  { value: 2, label: 'Semester 2' },
 ];
 
 function toIsoLocalDate(date: Date): string {
@@ -243,6 +251,36 @@ export function ContributionPage() {
     };
   }, [getPaguyubanPaidIds, paguyubanNominal]);
 
+  // LKS logic - per semester dan tahun
+  const [lksSemester, setLksSemester] = useState<SemesterNumber>(1);
+  const [lksYear, setLksYear] = useState(() => new Date().getFullYear());
+  const [lksSemesterOpen, setLksSemesterOpen] = useState(false);
+  const [editLksNominalOpen, setEditLksNominalOpen] = useState(false);
+  const [editLksNominalValue, setEditLksNominalValue] = useState('');
+
+  const {
+    toggleStudent: toggleLksStudent,
+    hasStudentPaid: hasLksPaid,
+    getPaidStudentIds: getLksPaidIds,
+    defaultNominal: lksDefaultNominal,
+  } = useContributions('lks', {
+    periodMonth: lksSemester,
+    periodYear: lksYear,
+  });
+
+  const lksNominal = lksDefaultNominal ?? 91000;
+
+  const lksStats = useMemo(() => {
+    const paidCount = getLksPaidIds().length;
+    return {
+      paidCount,
+      total: paidCount * lksNominal,
+    };
+  }, [getLksPaidIds, lksNominal]);
+
+  const lksPeriodKey = `${lksYear}-S${lksSemester}`;
+  const lksNotes = useNotes('lks', lksPeriodKey);
+
   // Tabungan logic - calculate balance per student
   const tabunganBalances = useMemo(() => {
     return students.map(student => {
@@ -340,6 +378,39 @@ export function ContributionPage() {
 
   const handlePaguyubanSave = () => {
     alert('Data Paguyuban Ngaji tersimpan otomatis.');
+  };
+
+  const handleLksToggle = (studentId: string) => {
+    toggleLksStudent(studentId, lksNominal);
+  };
+
+  const handleLksSave = () => {
+    alert('Data LKS tersimpan otomatis.');
+  };
+
+  const handleLksPrevYear = () => {
+    setLksYear((prev) => prev - 1);
+  };
+
+  const handleLksNextYear = () => {
+    setLksYear((prev) => prev + 1);
+  };
+
+  const handleEditLksNominalOpen = () => {
+    setEditLksNominalValue(String(lksNominal));
+    setEditLksNominalOpen(true);
+  };
+
+  const handleEditLksNominalSave = async () => {
+    const nominal = Number(editLksNominalValue);
+    if (Number.isFinite(nominal) && nominal > 0) {
+      try {
+        await settingsApi.update('lks', { defaultNominal: nominal });
+      } catch (err) {
+        console.error('Failed to update LKS nominal:', err);
+      }
+    }
+    setEditLksNominalOpen(false);
   };
 
   const handleTabunganPrevDay = () => {
@@ -801,6 +872,138 @@ export function ContributionPage() {
           </>
         )}
 
+        {/* MODE LKS */}
+        {contributionType === 'lks' && (
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <h3 className="text-sm font-semibold text-slate-900">LKS</h3>
+              <div className="mt-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleLksPrevYear}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  aria-label="Tahun sebelumnya"
+                >
+                  <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                </button>
+                <p className="text-sm font-medium text-slate-700">{lksYear}</p>
+                <button
+                  type="button"
+                  onClick={handleLksNextYear}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  aria-label="Tahun berikutnya"
+                >
+                  <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </div>
+              <div className="relative mt-2">
+                <button
+                  type="button"
+                  onClick={() => setLksSemesterOpen(!lksSemesterOpen)}
+                  className="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900"
+                >
+                  {lksSemester === 1 ? 'Semester 1' : 'Semester 2'}
+                  <ChevronDown className="h-5 w-5 text-slate-500" strokeWidth={2} />
+                </button>
+                {lksSemesterOpen && (
+                  <div className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {semesterOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setLksSemester(option.value);
+                          setLksSemesterOpen(false);
+                        }}
+                        className={`block w-full px-4 py-3 text-left text-sm ${
+                          lksSemester === option.value
+                            ? 'bg-brand-50 font-semibold text-brand-700'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                <p className="text-xs text-slate-500">Iuran per siswa</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-semibold text-slate-900">{formatCurrency(lksNominal)}</p>
+                  <button
+                    type="button"
+                    onClick={handleEditLksNominalOpen}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    aria-label="Edit nominal LKS"
+                  >
+                    <Edit2 className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {students.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
+              ) : (
+                <div className="space-y-2">
+                  {students.map((student, index) => {
+                    const isPaid = hasLksPaid(student.id);
+                    return (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => handleLksToggle(student.id)}
+                        className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}
+                      >
+                        <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                        <div
+                          className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                            isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'
+                          }`}
+                        >
+                          {isPaid && <Check className="h-4 w-4" strokeWidth={3} />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">Sudah bayar</p>
+                  <p className="mt-1 text-base font-semibold text-slate-900">{lksStats.paidCount} siswa</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-medium text-slate-500">Total</p>
+                  <p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(lksStats.total)}</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLksSave}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"
+            >
+              <Save className="h-5 w-5" strokeWidth={2} />
+              Simpan
+            </button>
+
+            <NotesSection
+              notes={lksNotes.notes}
+              loading={lksNotes.loading}
+              onAdd={lksNotes.addNote}
+              onUpdate={lksNotes.updateNote}
+              onDelete={lksNotes.removeNote}
+            />
+          </>
+        )}
+
         {/* MODE TABUNGAN */}
         {contributionType === 'tabungan' && (
           <>
@@ -957,6 +1160,49 @@ export function ContributionPage() {
             <button
               type="button"
               onClick={handleEditNominalSave}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 text-sm font-semibold text-white"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Bottom Sheet - Edit Nominal LKS */}
+      <BottomSheet
+        open={editLksNominalOpen}
+        title="Edit Nominal LKS"
+        description="Ubah nominal iuran LKS per siswa"
+        onClose={() => setEditLksNominalOpen(false)}
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="editLksNominal" className="mb-2 block text-sm font-medium text-slate-700">
+              Nominal iuran LKS
+            </label>
+            <input
+              id="editLksNominal"
+              type="number"
+              min="0"
+              value={editLksNominalValue}
+              onChange={(e) => setEditLksNominalValue(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Berlaku untuk transaksi LKS yang baru dicatat.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditLksNominalOpen(false)}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleEditLksNominalSave}
               className="flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 text-sm font-semibold text-white"
             >
               Simpan

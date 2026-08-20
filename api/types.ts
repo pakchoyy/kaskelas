@@ -7,7 +7,7 @@ export type Student = {
   updatedAt: string;
 };
 
-export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan';
+export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks';
 
 export type Contribution = {
   id: string;

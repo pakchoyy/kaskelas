@@ -106,8 +106,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan'].includes(contributionType)) {
-    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji, tabungan)');
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks'].includes(contributionType)) {
+    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji, tabungan, lks)');
   }
   
   if (!date || !isValidDate(date)) {
@@ -134,6 +134,15 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     }
     if (nominal !== 12000) {
       return sendError(res, 'Paguyuban Ngaji nominal must be 12000');
+    }
+  }
+  
+  if (contributionType === 'lks') {
+    if (typeof periodMonth !== 'number' || (periodMonth !== 1 && periodMonth !== 2)) {
+      return sendError(res, 'LKS requires period_month (1 = Semester 1, 2 = Semester 2)');
+    }
+    if (typeof periodYear !== 'number' || periodYear < 2000) {
+      return sendError(res, 'LKS requires period_year');
     }
   }
   

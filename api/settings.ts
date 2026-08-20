@@ -38,8 +38,8 @@ async function handleGetSettings(req: VercelRequest, res: VercelResponse) {
 async function handleUpdateSetting(req: VercelRequest, res: VercelResponse) {
   const { contributionType, defaultNominal } = req.body;
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji'].includes(contributionType)) {
-    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji)');
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'lks'].includes(contributionType)) {
+    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji, lks)');
   }
   
   const existing = await queryOne<{ isFixed: boolean }>(

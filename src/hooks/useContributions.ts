@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
-type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan';
+type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks';
 
 export function useContributions(
   contributionType: FrontendContributionType,
@@ -98,7 +98,7 @@ export function useContributions(
           nominal,
         };
 
-        if (apiType === 'paguyuban_ngaji') {
+        if (apiType === 'paguyuban_ngaji' || apiType === 'lks') {
           data.periodMonth = periodMonth ?? dateOrPeriod.periodMonth;
           data.periodYear = periodYear ?? dateOrPeriod.periodYear;
         }

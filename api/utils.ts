@@ -60,7 +60,7 @@ function extractConstraintMessage(message: string): string {
     } else if (constraint.includes('amal_jumat_friday')) {
       return 'Amal Jumat can only be paid on Fridays';
     } else if (constraint.includes('paguyuban_period')) {
-      return 'Paguyuban Ngaji requires period_month and period_year, and nominal must be 12000';
+      return 'Period is required: Paguyuban Ngaji per month (nominal 12000) or LKS per semester';
     } else if (constraint.includes('note_not_empty')) {
       return 'Note cannot be empty';
     }
