@@ -66,9 +66,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       [contributionType]
     );
     const latestCashDate = latestDateResult?.date || null;
+
+    // For Paguyuban Ngaji: list lunas months per student (current year)
+    let paguyubanMonths: RecapData['paguyubanMonths'] = [];
+    if (contributionType === 'paguyuban_ngaji') {
+      const currentYear = new Date().getFullYear();
+      const monthRows = await query<{
+        id: string;
+        name: string;
+        months: string;
+      }>(
+        `SELECT 
+          s.id,
+          s.name,
+          COALESCE(ARRAY_AGG(c.period_month ORDER BY c.period_month) FILTER (WHERE c.id IS NOT NULL), ARRAY[]::integer[])::text as months
+        FROM students s
+        LEFT JOIN contributions c ON s.id = c.student_id 
+          AND c.contribution_type = 'paguyuban_ngaji'
+          AND c.period_year = $1
+        WHERE s.active = true
+        GROUP BY s.id, s.name
+        ORDER BY s.created_at`,
+        [currentYear]
+      );
+      paguyubanMonths = monthRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        months: (row.months ?? '{}')
+          .replace(/^\{|\}$/g, '')
+          .split(',')
+          .filter((m) => m.trim() !== '')
+          .map((m) => parseInt(m.trim(), 10)),
+      }));
+    }
     
     const recap: RecapData = {
       perStudent: perStudentWithNumbers,
+      paguyubanMonths,
       totalKasMasuk,
       totalPemasukanLain,
       totalPengeluaran,

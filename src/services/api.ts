@@ -94,6 +94,11 @@ export type RecapData = {
     paidDays: number;
     total: number;
   }>;
+  paguyubanMonths: Array<{
+    id: string;
+    name: string;
+    months: number[];
+  }>;
   totalKasMasuk: number;
   totalPemasukanLain: number;
   totalPengeluaran: number;

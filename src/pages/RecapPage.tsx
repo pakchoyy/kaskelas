@@ -6,6 +6,29 @@ import { ChevronDown } from 'lucide-react';
 import { recapApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
+const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function formatLunasRange(months: number[]): string {
+  const sorted = [...new Set(months)].sort((a, b) => a - b);
+  if (sorted.length === 0) {
+    return 'Belum lunas';
+  }
+  const parts: string[] = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  for (let i = 1; i <= sorted.length; i++) {
+    const curr = sorted[i];
+    if (curr !== undefined && curr === prev + 1) {
+      prev = curr;
+      continue;
+    }
+    parts.push(start === prev ? monthShortNames[start - 1] : `${monthShortNames[start - 1]}-${monthShortNames[prev - 1]}`);
+    start = curr ?? prev;
+    prev = curr ?? prev;
+  }
+  return parts.join(', ');
+}
+
 type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji' | 'lks';
 
 type KasView = 'per-siswa' | 'total-kas';
@@ -326,6 +349,41 @@ export function RecapPage() {
             </table>
             {recap.perStudent.length === 0 && (
               <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+            )}
+          </div>
+        )}
+
+        {contributionFilter === 'paguyuban-ngaji' && (
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-base font-semibold text-slate-900">Lunas Per Siswa</h3>
+            </div>
+            {recap.perStudent.length === 0 ? (
+              <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">No</th>
+                      <th className="px-4 py-3 font-medium">Nama</th>
+                      <th className="px-4 py-3 font-medium">Bulan Lunas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {recap.perStudent.map((student, index) => {
+                      const months = recap.paguyubanMonths.find((m) => m.id === student.id)?.months ?? [];
+                      return (
+                        <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
+                          <td className="px-4 py-3 text-slate-500">{student.number}</td>
+                          <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
+                          <td className="px-4 py-3 font-semibold text-brand-700">{formatLunasRange(months)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
