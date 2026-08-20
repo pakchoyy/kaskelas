@@ -122,6 +122,7 @@ export function RecapPage() {
                   onClick={() => {
                     setContributionFilter('kas-kelas');
                     setFilterOpen(false);
+                    setKasView('per-siswa');
                   }}
                   className={`block w-full px-4 py-3 text-left text-sm ${
                     contributionFilter === 'kas-kelas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
@@ -134,6 +135,7 @@ export function RecapPage() {
                   onClick={() => {
                     setContributionFilter('tabungan');
                     setFilterOpen(false);
+                    setKasView('per-siswa');
                   }}
                   className={`block w-full px-4 py-3 text-left text-sm ${
                     contributionFilter === 'tabungan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
@@ -146,6 +148,7 @@ export function RecapPage() {
                   onClick={() => {
                     setContributionFilter('amal-jumat');
                     setFilterOpen(false);
+                    setKasView('per-siswa');
                   }}
                   className={`block w-full px-4 py-3 text-left text-sm ${
                     contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
@@ -158,6 +161,7 @@ export function RecapPage() {
                   onClick={() => {
                     setContributionFilter('paguyuban-ngaji');
                     setFilterOpen(false);
+                    setKasView('per-siswa');
                   }}
                   className={`block w-full px-4 py-3 text-left text-sm ${
                     contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
@@ -170,6 +174,7 @@ export function RecapPage() {
                   onClick={() => {
                     setContributionFilter('lks');
                     setFilterOpen(false);
+                    setKasView('per-siswa');
                   }}
                   className={`block w-full px-4 py-3 text-left text-sm ${
                     contributionFilter === 'lks' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
@@ -212,6 +217,7 @@ export function RecapPage() {
           <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
         </div>
 
+        {contributionFilter === 'kas-kelas' && (
         <div className="relative">
           <button
             type="button"
@@ -253,6 +259,7 @@ export function RecapPage() {
             </div>
           )}
         </div>
+        )}
 
         {kasView === 'total-kas' && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
