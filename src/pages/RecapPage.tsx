@@ -219,7 +219,7 @@ export function RecapPage() {
             className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
           >
             <span>
-              {kasView === 'per-siswa' ? 'Kas Per Siswa' : 'Kas Akhir Siswa'}
+              {kasView === 'per-siswa' ? 'Kas Baru' : 'Kas Akhir Siswa'}
             </span>
             <ChevronDown className="h-5 w-5 text-slate-400" strokeWidth={2} />
           </button>
@@ -236,7 +236,7 @@ export function RecapPage() {
                   kasView === 'per-siswa' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
                 }`}
               >
-                Kas Per Siswa
+                Kas Baru
               </button>
               <button
                 type="button"
