@@ -6,7 +6,7 @@
 -- ================================================
 -- Fitur baru: "LKS" (Lembar Kerja Siswa) - salinan Paguyuban Ngaji
 --  - Peride per SEMESTER (Semester 1 = period_month 1, Semester 2 = period_month 2) + tahun
---  - Nominal default 91000, bisa diubah (is_fixed = false)
+--  - Nominal default 71000, bisa diubah (is_fixed = false)
 -- Jalankan script ini SETELAH 004_notes_and_markers.sql
 -- ================================================
 
@@ -43,9 +43,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_lks_per_semester
   ON contributions(student_id, period_year, period_month)
   WHERE contribution_type = 'lks';
 
--- STEP 4: Seed contribution_settings untuk LKS (nominal default 91000, bisa diubah)
+-- STEP 4: Seed contribution_settings untuk LKS (nominal default 71000, bisa diubah)
 INSERT INTO contribution_settings (contribution_type, default_nominal, is_fixed)
-VALUES ('lks', 91000, false)
+VALUES ('lks', 71000, false)
 ON CONFLICT (contribution_type) DO NOTHING;
 
 -- ================================================
@@ -57,5 +57,5 @@ BEGIN
   RAISE NOTICE '✅ LKS schema updated successfully!';
   RAISE NOTICE '📋 Enum added: lks';
   RAISE NOTICE '🔒 Constraint & unique index updated';
-  RAISE NOTICE '🌱 Seed inserted: lks = 91000 (editable)';
+  RAISE NOTICE '🌱 Seed inserted: lks = 71000 (editable)';
 END $$;

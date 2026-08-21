@@ -257,6 +257,7 @@ export function ContributionPage() {
   const [lksSemesterOpen, setLksSemesterOpen] = useState(false);
   const [editLksNominalOpen, setEditLksNominalOpen] = useState(false);
   const [editLksNominalValue, setEditLksNominalValue] = useState('');
+  const [lksNominal, setLksNominal] = useState(71000);
 
   const {
     toggleStudent: toggleLksStudent,
@@ -268,7 +269,11 @@ export function ContributionPage() {
     periodYear: lksYear,
   });
 
-  const lksNominal = lksDefaultNominal ?? 91000;
+  useEffect(() => {
+    if (lksDefaultNominal && lksDefaultNominal > 0) {
+      setLksNominal(lksDefaultNominal);
+    }
+  }, [lksDefaultNominal]);
 
   const lksStats = useMemo(() => {
     const paidCount = getLksPaidIds().length;
@@ -406,6 +411,7 @@ export function ContributionPage() {
     if (Number.isFinite(nominal) && nominal > 0) {
       try {
         await settingsApi.update('lks', { defaultNominal: nominal });
+        setLksNominal(nominal);
       } catch (err) {
         console.error('Failed to update LKS nominal:', err);
       }
