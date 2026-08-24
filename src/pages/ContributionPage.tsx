@@ -432,12 +432,39 @@ export function ContributionPage() {
     setTabunganDate((prev) => shiftIsoDate(prev, 1) || todayIsoDate());
   };
 
+  const autosaveTabungan = async (studentId: string, nominalStr: string, noteStr: string) => {
+    if (tabunganLoadingRef.current) return;
+    const nominal = parseInt(nominalStr, 10) || 0;
+    const existing = tabunganDayRecords.find((c) => c.studentId === studentId);
+    const noteValue = tabunganMode === 'tarik' ? (noteStr.trim() || null) : null;
+
+    try {
+      if (nominal > 0) {
+        if (tabunganMode === 'tarik' && !noteValue) return; // tunggu keperluan diisi
+        const signedNominal = tabunganMode === 'tarik' ? -nominal : nominal;
+        if (!existing) {
+          await addTabunganContribution(studentId, signedNominal, tabunganDate, undefined, undefined, noteValue);
+        } else if (existing.nominal !== signedNominal || (existing.note || null) !== noteValue) {
+          await updateTabunganContribution(existing.id, { nominal: signedNominal, note: noteValue });
+        }
+      } else if (existing && nominal === 0 && !noteStr) {
+        await removeTabunganContribution(existing.id);
+      }
+    } catch (err) {
+      console.error('Autosave tabungan gagal:', err);
+    }
+  };
+
   const handleTabunganChange = (studentId: string, value: string) => {
     setTabunganNominals((prev) => ({ ...prev, [studentId]: value }));
+    // autosave per siswa setelah nominal berubah
+    setTimeout(() => autosaveTabungan(studentId, value, tabunganTarikNotes[studentId] || ''), 0);
   };
 
   const handleTabunganNoteChange = (studentId: string, value: string) => {
     setTabunganTarikNotes((prev) => ({ ...prev, [studentId]: value }));
+    const nominalVal = tabunganNominals[studentId] || '';
+    setTimeout(() => autosaveTabungan(studentId, nominalVal, value), 0);
   };
 
   const handleTabunganSave = async () => {
@@ -451,9 +478,8 @@ export function ContributionPage() {
 
         if (nominal > 0) {
           if (tabunganMode === 'tarik' && !noteValue) {
-            alert(`Isi keperluan penarikan untuk ${student.name}`);
-            setTabunganSaving(false);
-            return;
+            // lewati siswa ini, biar siswa lain tetap tersimpan (autosave sudah per siswa)
+            continue;
           }
           const signedNominal = tabunganMode === 'setor' ? nominal : -nominal;
           if (!existing) {
