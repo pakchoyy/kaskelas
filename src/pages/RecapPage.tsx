@@ -233,21 +233,19 @@ export function RecapPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <InfoCard title="Total Kas Masuk" value={formatCurrency(recap.totalKasMasuk)} />
-          <InfoCard title="Saldo Kelas" value={formatCurrency(recap.saldoKelas)} tone="brand" />
-          {contributionFilter === 'tabungan' ? (
-            <>
-              <InfoCard title="Total Tabungan Masuk" value={formatCurrency(recap.totalTabunganMasuk)} />
-              <InfoCard title="Total Penarikan Tabungan" value={formatCurrency(recap.totalTabunganPenarikan)} />
-            </>
-          ) : (
-            <>
-              <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
-              <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
-            </>
-          )}
-        </div>
+        {contributionFilter === 'tabungan' ? (
+          <div className="grid grid-cols-2 gap-3">
+            <InfoCard title="Total Tabungan Masuk" value={formatCurrency(recap.totalTabunganMasuk)} />
+            <InfoCard title="Total Penarikan Tabungan" value={formatCurrency(recap.totalTabunganPenarikan)} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <InfoCard title="Total Kas Masuk" value={formatCurrency(recap.totalKasMasuk)} />
+            <InfoCard title="Saldo Kelas" value={formatCurrency(recap.saldoKelas)} tone="brand" />
+            <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
+            <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
+          </div>
+        )}
 
         {contributionFilter === 'kas-kelas' && (
         <div className="relative">
