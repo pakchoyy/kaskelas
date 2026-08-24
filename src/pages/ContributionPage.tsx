@@ -442,17 +442,22 @@ export function ContributionPage() {
     const noteValue = tabunganMode === 'tarik' ? (noteStr.trim() || null) : null;
 
     try {
+      let changed = false;
       if (nominal > 0) {
         if (tabunganMode === 'tarik' && !noteValue) return; // tunggu keperluan diisi
         const signedNominal = tabunganMode === 'tarik' ? -nominal : nominal;
         if (!existing) {
           await addTabunganContribution(studentId, signedNominal, tabunganDate, undefined, undefined, noteValue);
+          changed = true;
         } else if (existing.nominal !== signedNominal || (existing.note || null) !== noteValue) {
           await updateTabunganContribution(existing.id, { nominal: signedNominal, note: noteValue });
+          changed = true;
         }
       } else if (existing && nominal === 0 && !noteStr) {
         await removeTabunganContribution(existing.id);
+        changed = true;
       }
+      if (changed) await reload();
     } catch (err) {
       console.error('Autosave tabungan gagal:', err);
     }
