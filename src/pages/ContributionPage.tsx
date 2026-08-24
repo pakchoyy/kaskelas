@@ -215,10 +215,10 @@ export function ContributionPage() {
     setTabunganNominals({});
     setTabunganTarikNotes({});
     tabunganSyncedDateRef.current = null;
-  }, [tabunganDate]);
+  }, [tabunganDate, tabunganMode]);
 
   useEffect(() => {
-    if (tabunganSyncedDateRef.current === tabunganDate) {
+    if (tabunganSyncedDateRef.current === `${tabunganDate}-${tabunganMode}`) {
       return;
     }
     if (tabunganLoadingRef.current) {
@@ -227,13 +227,16 @@ export function ContributionPage() {
     const next: Record<string, string> = {};
     const nextNotes: Record<string, string> = {};
     tabunganDayRecords.forEach((c) => {
+      const isTarikRecord = c.nominal < 0;
+      if (tabunganMode === 'tarik' && !isTarikRecord) return;
+      if (tabunganMode === 'setor' && isTarikRecord) return;
       next[c.studentId] = String(Math.abs(c.nominal));
       if (c.note) nextNotes[c.studentId] = c.note;
     });
     setTabunganNominals(next);
     setTabunganTarikNotes(nextNotes);
-    tabunganSyncedDateRef.current = tabunganDate;
-  }, [tabunganDate, tabunganLoading, tabunganDayRecords]);
+    tabunganSyncedDateRef.current = `${tabunganDate}-${tabunganMode}`;
+  }, [tabunganDate, tabunganMode, tabunganLoading, tabunganDayRecords]);
 
   // Paguyuban Ngaji logic
   const monthInfo = useMemo(() => getMonthInfo(anchorDate), [anchorDate]);
