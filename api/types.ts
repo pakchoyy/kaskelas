@@ -17,6 +17,7 @@ export type Contribution = {
   nominal: number;
   periodMonth: number | null;
   periodYear: number | null;
+  note: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -100,6 +101,8 @@ export type RecapData = {
   totalKasMasuk: number;
   totalPemasukanLain: number;
   totalPengeluaran: number;
+  totalTabunganMasuk: number;
+  totalTabunganPenarikan: number;
   saldoKelas: number;
   latestCashDate: string | null;
 };

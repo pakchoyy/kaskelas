@@ -55,6 +55,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     const totalPemasukanLain = parseInt(financeTotals?.totalPemasukan || '0', 10);
     const totalPengeluaran = parseInt(financeTotals?.totalPengeluaran || '0', 10);
+
+    const tabunganTotals = await queryOne<{
+      totalMasuk: string | null;
+      totalPenarikan: string | null;
+    }>(
+      `SELECT
+        COALESCE(SUM(nominal) FILTER (WHERE nominal > 0), 0) as "totalMasuk",
+        COALESCE(SUM(ABS(nominal)) FILTER (WHERE nominal < 0), 0) as "totalPenarikan"
+       FROM contributions
+       WHERE contribution_type = 'tabungan'`
+    );
+    const totalTabunganMasuk = parseInt(tabunganTotals?.totalMasuk || '0', 10);
+    const totalTabunganPenarikan = parseInt(tabunganTotals?.totalPenarikan || '0', 10);
     
     const saldoKelas = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
     
@@ -106,6 +119,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalKasMasuk,
       totalPemasukanLain,
       totalPengeluaran,
+      totalTabunganMasuk,
+      totalTabunganPenarikan,
       saldoKelas,
       latestCashDate,
     };

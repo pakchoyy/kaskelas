@@ -83,7 +83,7 @@ export function useContributions(
 
   // Add contribution
   const addContribution = useCallback(
-    async (studentId: string, nominal: number, date?: string, periodMonth?: number, periodYear?: number): Promise<boolean> => {
+    async (studentId: string, nominal: number, date?: string, periodMonth?: number, periodYear?: number, note?: string | null): Promise<boolean> => {
       // Prevent action while loading to avoid race condition
       if (loadingRef.current) {
         console.warn('Still loading, preventing add contribution');
@@ -103,6 +103,10 @@ export function useContributions(
           data.periodYear = periodYear ?? dateOrPeriod.periodYear;
         }
 
+        if (note !== undefined) {
+          data.note = note;
+        }
+
         const newContribution = await contributionsApi.create(data);
         setContributions(current => [...current, newContribution]);
         return true;
@@ -118,7 +122,7 @@ export function useContributions(
 
   // Update contribution
   const updateContribution = useCallback(
-    async (contributionId: string, data: { nominal?: number; date?: string }): Promise<boolean> => {
+    async (contributionId: string, data: { nominal?: number; date?: string; note?: string | null }): Promise<boolean> => {
       // Prevent action while loading to avoid race condition
       if (loadingRef.current) {
         console.warn('Still loading, preventing update contribution');

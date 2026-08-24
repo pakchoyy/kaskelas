@@ -236,8 +236,17 @@ export function RecapPage() {
         <div className="grid grid-cols-2 gap-3">
           <InfoCard title="Total Kas Masuk" value={formatCurrency(recap.totalKasMasuk)} />
           <InfoCard title="Saldo Kelas" value={formatCurrency(recap.saldoKelas)} tone="brand" />
-          <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
-          <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
+          {contributionFilter === 'tabungan' ? (
+            <>
+              <InfoCard title="Total Tabungan Masuk" value={formatCurrency(recap.totalTabunganMasuk)} />
+              <InfoCard title="Total Penarikan Tabungan" value={formatCurrency(recap.totalTabunganPenarikan)} />
+            </>
+          ) : (
+            <>
+              <InfoCard title="Pemasukan Lain" value={formatCurrency(recap.totalPemasukanLain)} />
+              <InfoCard title="Pengeluaran" value={formatCurrency(recap.totalPengeluaran)} />
+            </>
+          )}
         </div>
 
         {contributionFilter === 'kas-kelas' && (

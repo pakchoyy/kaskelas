@@ -41,6 +41,7 @@ async function handleGetContributions(req: VercelRequest, res: VercelResponse) {
       nominal, 
       period_month as "periodMonth", 
       period_year as "periodYear", 
+      note,
       created_at as "createdAt", 
       updated_at as "updatedAt"
     FROM contributions
@@ -99,7 +100,7 @@ async function handleGetContributions(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleCreateContribution(req: VercelRequest, res: VercelResponse) {
-  const { studentId, contributionType, date, nominal, periodMonth, periodYear } = req.body;
+  const { studentId, contributionType, date, nominal, periodMonth, periodYear, note } = req.body;
   
   // Validation
   if (!studentId || typeof studentId !== 'string') {
@@ -158,6 +159,9 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     }
   }
   
+  // note hanya untuk tabungan tarik; kosong = null
+  const noteValue = typeof note === 'string' ? note.trim() || null : null;
+
   const id = createId('contrib');
   const now = new Date().toISOString();
   
@@ -165,8 +169,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     const contribution = await queryOne<Contribution>(
       `INSERT INTO contributions (
         id, student_id, contribution_type, date, nominal, 
-        period_month, period_year, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        period_month, period_year, note, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING 
         id, 
         student_id as "studentId", 
@@ -175,9 +179,10 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
         nominal, 
         period_month as "periodMonth", 
         period_year as "periodYear", 
+        note,
         created_at as "createdAt", 
         updated_at as "updatedAt"`,
-      [id, studentId, contributionType, date, nominal, periodMonth || null, periodYear || null, now, now]
+      [id, studentId, contributionType, date, nominal, periodMonth || null, periodYear || null, noteValue, now, now]
     );
     
     sendSuccess(res, contribution, 'Contribution created successfully');
@@ -192,7 +197,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
 
 async function handleUpdateContribution(req: VercelRequest, res: VercelResponse) {
   const id = parseQueryParam(req.query.id);
-  const { nominal, date } = req.body;
+  const { nominal, date, note } = req.body;
   
   if (!id) {
     return sendError(res, 'Contribution ID is required');
@@ -219,6 +224,10 @@ async function handleUpdateContribution(req: VercelRequest, res: VercelResponse)
   
   if (date !== undefined && !isValidDate(date)) {
     return sendError(res, 'Valid date required (YYYY-MM-DD)');
+  }
+
+  if (note !== undefined && note !== null && typeof note !== 'string') {
+    return sendError(res, 'Note must be a string');
   }
   
   // Check paguyuban constraint
@@ -254,23 +263,30 @@ async function handleUpdateContribution(req: VercelRequest, res: VercelResponse)
     params.push(date);
     paramIndex++;
   }
+
+  if (note !== undefined) {
+    updates.push(`note = $${paramIndex}`);
+    params.push(note === null ? null : String(note).trim() || null);
+    paramIndex++;
+  }
   
   params.push(id);
   
   const contribution = await queryOne<Contribution>(
     `UPDATE contributions
      SET ${updates.join(', ')}
-     WHERE id = $${paramIndex}
-     RETURNING 
-       id, 
-       student_id as "studentId", 
-       contribution_type as "contributionType", 
-       date::text as date, 
-       nominal, 
-       period_month as "periodMonth", 
-       period_year as "periodYear", 
-       created_at as "createdAt", 
-       updated_at as "updatedAt"`,
+      WHERE id = $${paramIndex}
+      RETURNING 
+        id, 
+        student_id as "studentId", 
+        contribution_type as "contributionType", 
+        date::text as date, 
+        nominal, 
+        period_month as "periodMonth", 
+        period_year as "periodYear", 
+        note,
+        created_at as "createdAt", 
+        updated_at as "updatedAt"`,
     params
   );
   
@@ -290,17 +306,18 @@ async function handleDeleteContribution(req: VercelRequest, res: VercelResponse)
   
   const contribution = await queryOne<Contribution>(
     `DELETE FROM contributions
-     WHERE id = $1
-     RETURNING 
-       id, 
-       student_id as "studentId", 
-       contribution_type as "contributionType", 
-       date::text as date, 
-       nominal, 
-       period_month as "periodMonth", 
-       period_year as "periodYear", 
-       created_at as "createdAt", 
-       updated_at as "updatedAt"`,
+      WHERE id = $1
+      RETURNING 
+        id, 
+        student_id as "studentId", 
+        contribution_type as "contributionType", 
+        date::text as date, 
+        nominal, 
+        period_month as "periodMonth", 
+        period_year as "periodYear", 
+        note,
+        created_at as "createdAt", 
+        updated_at as "updatedAt"`,
     [id]
   );
   

@@ -50,6 +50,7 @@ export type Contribution = {
   nominal: number;
   periodMonth: number | null;
   periodYear: number | null;
+  note: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -102,6 +103,8 @@ export type RecapData = {
   totalKasMasuk: number;
   totalPemasukanLain: number;
   totalPengeluaran: number;
+  totalTabunganMasuk: number;
+  totalTabunganPenarikan: number;
   saldoKelas: number;
   latestCashDate: string | null;
 };
@@ -192,6 +195,7 @@ export const contributionsApi = {
     nominal: number;
     periodMonth?: number;
     periodYear?: number;
+    note?: string | null;
   }): Promise<Contribution> {
     return fetchApi<Contribution>('/contributions', {
       method: 'POST',
@@ -199,7 +203,7 @@ export const contributionsApi = {
     });
   },
   
-  async update(id: string, data: { nominal?: number; date?: string }): Promise<Contribution> {
+  async update(id: string, data: { nominal?: number; date?: string; note?: string | null }): Promise<Contribution> {
     return fetchApi<Contribution>(`/contributions?id=${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

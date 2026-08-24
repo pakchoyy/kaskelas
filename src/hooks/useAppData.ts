@@ -193,6 +193,7 @@ export function useAppData() {
       nominal: 2000,
       periodMonth: null,
       periodYear: null,
+      note: null as string | null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));

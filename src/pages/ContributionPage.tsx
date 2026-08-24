@@ -111,6 +111,7 @@ export function ContributionPage() {
   const [tabunganMode, setTabunganMode] = useState<'setor' | 'tarik'>('setor');
   const [tabunganDate, setTabunganDate] = useState(todayIsoDate());
   const [tabunganNominals, setTabunganNominals] = useState<Record<string, string>>({});
+  const [tabunganTarikNotes, setTabunganTarikNotes] = useState<Record<string, string>>({});
   const [tabunganSaving, setTabunganSaving] = useState(false);
 
   // State untuk Edit Saldo Tabungan per siswa
@@ -212,6 +213,7 @@ export function ContributionPage() {
   // are never edited while the new day is still loading
   useEffect(() => {
     setTabunganNominals({});
+    setTabunganTarikNotes({});
     tabunganSyncedDateRef.current = null;
   }, [tabunganDate]);
 
@@ -223,10 +225,13 @@ export function ContributionPage() {
       return;
     }
     const next: Record<string, string> = {};
+    const nextNotes: Record<string, string> = {};
     tabunganDayRecords.forEach((c) => {
-      next[c.studentId] = String(c.nominal);
+      next[c.studentId] = String(Math.abs(c.nominal));
+      if (c.note) nextNotes[c.studentId] = c.note;
     });
     setTabunganNominals(next);
+    setTabunganTarikNotes(nextNotes);
     tabunganSyncedDateRef.current = tabunganDate;
   }, [tabunganDate, tabunganLoading, tabunganDayRecords]);
 
@@ -431,6 +436,10 @@ export function ContributionPage() {
     setTabunganNominals((prev) => ({ ...prev, [studentId]: value }));
   };
 
+  const handleTabunganNoteChange = (studentId: string, value: string) => {
+    setTabunganTarikNotes((prev) => ({ ...prev, [studentId]: value }));
+  };
+
   const handleTabunganSave = async () => {
     setTabunganSaving(true);
     try {
@@ -438,13 +447,19 @@ export function ContributionPage() {
         const raw = tabunganNominals[student.id] || '';
         const nominal = parseInt(raw, 10) || 0;
         const existing = tabunganDayRecords.find((c) => c.studentId === student.id);
+        const noteValue = tabunganMode === 'tarik' ? (tabunganTarikNotes[student.id]?.trim() || null) : null;
 
         if (nominal > 0) {
+          if (tabunganMode === 'tarik' && !noteValue) {
+            alert(`Isi keperluan penarikan untuk ${student.name}`);
+            setTabunganSaving(false);
+            return;
+          }
           const signedNominal = tabunganMode === 'setor' ? nominal : -nominal;
           if (!existing) {
-            await addTabunganContribution(student.id, signedNominal, tabunganDate);
-          } else if (existing.nominal !== signedNominal) {
-            await updateTabunganContribution(existing.id, { nominal: signedNominal });
+            await addTabunganContribution(student.id, signedNominal, tabunganDate, undefined, undefined, noteValue);
+          } else if (existing.nominal !== signedNominal || (existing.note || null) !== noteValue) {
+            await updateTabunganContribution(existing.id, { nominal: signedNominal, note: noteValue });
           }
         } else if (existing) {
           await removeTabunganContribution(existing.id);
@@ -1073,26 +1088,38 @@ export function ContributionPage() {
                 <div className="space-y-2">
                   {students.map((student, index) => {
                     const balance = tabunganBalances.find((item) => item.student.id === student.id)?.balance ?? 0;
+                    const hasNominal = !!(tabunganNominals[student.id] && parseInt(tabunganNominals[student.id], 10) > 0);
                     return (
-                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                          <div className="mt-0.5 flex items-center gap-1.5">
-                            <p className="text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
-                            <button
-                              type="button"
-                              onClick={() => handleEditSaldoOpen({ id: student.id, name: student.name })}
-                              className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              aria-label={`Edit saldo ${student.name}`}
-                            >
-                              <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
-                            </button>
+                      <div key={student.id} className={`rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                            <div className="mt-0.5 flex items-center gap-1.5">
+                              <p className="text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleEditSaldoOpen({ id: student.id, name: student.name })}
+                                className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                aria-label={`Edit saldo ${student.name}`}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
+                              </button>
+                            </div>
                           </div>
+                          <NominalStepper
+                            value={tabunganNominals[student.id] || ''}
+                            onChange={(value) => handleTabunganChange(student.id, value)}
+                          />
                         </div>
-                        <NominalStepper
-                          value={tabunganNominals[student.id] || ''}
-                          onChange={(value) => handleTabunganChange(student.id, value)}
-                        />
+                        {tabunganMode === 'tarik' && hasNominal && (
+                          <input
+                            type="text"
+                            placeholder="Buat apa? cth: beli buku"
+                            value={tabunganTarikNotes[student.id] || ''}
+                            onChange={(e) => handleTabunganNoteChange(student.id, e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                          />
+                        )}
                       </div>
                     );
                   })}
