@@ -724,6 +724,11 @@ export function ContributionPage() {
               )}
             </div>
 
+            <div className="flex items-center justify-center gap-6 py-1">
+              <button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+            </div>
+
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-medium text-slate-500">Total minggu</p>
@@ -797,6 +802,11 @@ export function ContributionPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-center gap-6 py-1">
+              <button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
@@ -901,6 +911,11 @@ export function ContributionPage() {
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-center gap-6 py-1">
+              <button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
@@ -1025,6 +1040,11 @@ export function ContributionPage() {
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-center gap-6 py-1">
+              <button type="button" onClick={handleLksPrevYear} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={handleLksNextYear} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
@@ -1159,6 +1179,11 @@ export function ContributionPage() {
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-center gap-6 py-1">
+              <button type="button" onClick={handleTabunganPrevDay} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={handleTabunganNextDay} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
