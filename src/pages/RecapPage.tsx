@@ -501,8 +501,6 @@ export function RecapPage() {
                         <tr>
                           <th className="px-4 py-3 font-medium">No</th>
                           <th className="px-4 py-3 font-medium">Nama</th>
-                          <th className="px-4 py-3 text-right font-medium">Masuk</th>
-                          <th className="px-4 py-3 text-right font-medium">Tarik</th>
                           <th className="px-4 py-3 text-right font-medium">Total</th>
                         </tr>
                       </thead>
@@ -511,8 +509,6 @@ export function RecapPage() {
                           <tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
                             <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                             <td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td>
-                            <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.masuk)}</td>
-                            <td className="px-4 py-3 text-right text-rose-600">{row.tarik > 0 ? `-${formatCurrency(row.tarik)}` : formatCurrency(0)}</td>
                             <td className="px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(row.total)}</td>
                           </tr>
                         ))}
