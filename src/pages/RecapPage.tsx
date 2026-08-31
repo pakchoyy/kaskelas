@@ -2,8 +2,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { InfoCard } from '../components/InfoCard';
 import { PageShell } from '../components/PageShell';
 import { formatCurrency } from '../lib/format';
-import { ChevronDown } from 'lucide-react';
-import { recapApi, type RecapData } from '../services/api';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { recapApi, contributionsApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -41,6 +41,13 @@ export function RecapPage() {
   const [kasView, setKasView] = useState<KasView>('per-siswa');
   const [kasViewOpen, setKasViewOpen] = useState(false);
   const [kasDetailOpen, setKasDetailOpen] = useState(false);
+  const [tabunganView, setTabunganView] = useState<'total' | 'bulanan'>('total');
+  const [tabunganMonth, setTabunganMonth] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  });
+  const [tabunganBulanan, setTabunganBulanan] = useState<Array<{ id: string; name: string; masuk: number; tarik: number; total: number }>>([]);
+  const [tabunganBulananLoading, setTabunganBulananLoading] = useState(false);
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +72,37 @@ export function RecapPage() {
 
     loadRecap();
   }, [contributionFilter]);
+
+  // Tabungan per bulan
+  useEffect(() => {
+    if (contributionFilter !== 'tabungan' || tabunganView !== 'bulanan' || !recap) return;
+    const loadBulanan = async () => {
+      try {
+        setTabunganBulananLoading(true);
+        const from = `${tabunganMonth.year}-${String(tabunganMonth.month).padStart(2, '0')}-01`;
+        const lastDay = new Date(tabunganMonth.year, tabunganMonth.month, 0).getDate();
+        const to = `${tabunganMonth.year}-${String(tabunganMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        const data = await contributionsApi.getAll({ contributionType: 'tabungan', dateFrom: from, dateTo: to });
+        const map = new Map<string, { masuk: number; tarik: number }>();
+        data.forEach((c) => {
+          const cur = map.get(c.studentId) || { masuk: 0, tarik: 0 };
+          if (c.nominal > 0) cur.masuk += c.nominal;
+          else cur.tarik += Math.abs(c.nominal);
+          map.set(c.studentId, cur);
+        });
+        const rows = recap.perStudent.map((s) => {
+          const v = map.get(s.id) || { masuk: 0, tarik: 0 };
+          return { id: s.id, name: s.name, masuk: v.masuk, tarik: v.tarik, total: v.masuk - v.tarik };
+        });
+        setTabunganBulanan(rows);
+      } catch (err) {
+        console.error('Failed to load tabungan bulanan:', err);
+      } finally {
+        setTabunganBulananLoading(false);
+      }
+    };
+    loadBulanan();
+  }, [contributionFilter, tabunganView, tabunganMonth, recap]);
 
   const handleRefresh = async () => {
     setRefreshState('loading');
@@ -398,7 +436,96 @@ export function RecapPage() {
           </div>
         )}
 
-        {kasView === 'per-siswa' && (
+        {contributionFilter === 'tabungan' && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTabunganView('total')}
+                className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${tabunganView === 'total' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+              >
+                Total Tabungan
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabunganView('bulanan')}
+                className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${tabunganView === 'bulanan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+              >
+                Tabungan Per Bulan
+              </button>
+            </div>
+
+            {tabunganView === 'total' ? (
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <h3 className="text-base font-semibold text-slate-900">Per Siswa — Total</h3>
+                </div>
+                {recap.perStudent.length === 0 ? (
+                  <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">No</th>
+                          <th className="px-4 py-3 font-medium">Nama</th>
+                          <th className="px-4 py-3 text-right font-medium">Saldo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {recap.perStudent.map((student, index) => (
+                          <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
+                            <td className="px-4 py-3 text-slate-500">{student.number}</td>
+                            <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
+                            <td className="truncate px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(student.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3">
+                  <button type="button" onClick={() => setTabunganMonth((m) => m.month === 1 ? { year: m.year - 1, month: 12 } : { year: m.year, month: m.month - 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+                  <p className="text-sm font-semibold text-slate-900">{monthShortNames[tabunganMonth.month - 1]} {tabunganMonth.year}</p>
+                  <button type="button" onClick={() => setTabunganMonth((m) => m.month === 12 ? { year: m.year + 1, month: 1 } : { year: m.year, month: m.month + 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+                </div>
+                {tabunganBulananLoading ? (
+                  <p className="py-12 text-center text-sm text-slate-500">Memuat...</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">No</th>
+                          <th className="px-4 py-3 font-medium">Nama</th>
+                          <th className="px-4 py-3 text-right font-medium">Masuk</th>
+                          <th className="px-4 py-3 text-right font-medium">Tarik</th>
+                          <th className="px-4 py-3 text-right font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {tabunganBulanan.map((row, index) => (
+                          <tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
+                            <td className="px-4 py-3 text-slate-500">{index + 1}</td>
+                            <td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td>
+                            <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.masuk)}</td>
+                            <td className="px-4 py-3 text-right text-rose-600">{row.tarik > 0 ? `-${formatCurrency(row.tarik)}` : formatCurrency(0)}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(row.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {kasView === 'per-siswa' && contributionFilter !== 'tabungan' && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
           <div className="border-b border-slate-100 px-4 py-3">
             <h3 className="text-base font-semibold text-slate-900">Per Siswa</h3>
