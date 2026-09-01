@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { InstallBanner } from '../components/InstallBanner';
+import { ReloadPrompt } from '../components/ReloadPrompt';
 import { useAppSettings } from '../hooks/useAppSettings';
 
 declare const __BUILD_ID__: string;
@@ -58,6 +59,7 @@ export function AppLayout() {
           </div>
         </header>
 
+        <ReloadPrompt />
         <InstallBanner />
 
         <main className="flex-1 overflow-y-auto px-4 py-4 pb-28">

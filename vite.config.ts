@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   define: {
     __BUILD_ID__: JSON.stringify(
-      new Date().toISOString().slice(0, 10) + '-' + process.env.NODE_ENV
+      new Date().toISOString().replace(/[:.]/g, '-')
     ),
   },
   server: {
@@ -41,6 +41,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallbackDenylist: [/^\/api/],
+        cleanupOutdatedCaches: true,
       },
     }),
   ],
