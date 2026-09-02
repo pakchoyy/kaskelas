@@ -370,9 +370,12 @@ export function ContributionPage() {
     setGuruTwNominals(next);
   }, [guruTwRecords]);
 
+  const guruBulananTimeoutRef = useRef<Record<string, number>>({});
+  const guruTwTimeoutRef = useRef<Record<string, number>>({});
   const handleGuruBulananChange = (studentId: string, value: string) => {
     setGuruBulananNominals((prev) => ({ ...prev, [studentId]: value }));
-    setTimeout(() => autosaveGuruBulanan(studentId, value), 0);
+    if (guruBulananTimeoutRef.current[studentId]) window.clearTimeout(guruBulananTimeoutRef.current[studentId]);
+    guruBulananTimeoutRef.current[studentId] = window.setTimeout(() => autosaveGuruBulanan(studentId, value), 600);
   };
   const autosaveGuruBulanan = async (studentId: string, value: string) => {
     const nominal = parseInt(value, 10) || 0;
@@ -388,7 +391,8 @@ export function ContributionPage() {
   };
   const handleGuruTwChange = (studentId: string, value: string) => {
     setGuruTwNominals((prev) => ({ ...prev, [studentId]: value }));
-    setTimeout(() => autosaveGuruTw(studentId, value), 0);
+    if (guruTwTimeoutRef.current[studentId]) window.clearTimeout(guruTwTimeoutRef.current[studentId]);
+    guruTwTimeoutRef.current[studentId] = window.setTimeout(() => autosaveGuruTw(studentId, value), 600);
   };
   const autosaveGuruTw = async (studentId: string, value: string) => {
     const nominal = parseInt(value, 10) || 0;
@@ -620,16 +624,18 @@ export function ContributionPage() {
     }
   };
 
+  const tabunganTimeoutRef = useRef<Record<string, number>>({});
   const handleTabunganChange = (studentId: string, value: string) => {
     setTabunganNominals((prev) => ({ ...prev, [studentId]: value }));
-    // autosave per siswa setelah nominal berubah
-    setTimeout(() => autosaveTabungan(studentId, value, tabunganTarikNotes[studentId] || ''), 0);
+    if (tabunganTimeoutRef.current[studentId]) window.clearTimeout(tabunganTimeoutRef.current[studentId]);
+    tabunganTimeoutRef.current[studentId] = window.setTimeout(() => autosaveTabungan(studentId, value, tabunganTarikNotes[studentId] || ''), 600);
   };
 
   const handleTabunganNoteChange = (studentId: string, value: string) => {
     setTabunganTarikNotes((prev) => ({ ...prev, [studentId]: value }));
     const nominalVal = tabunganNominals[studentId] || '';
-    setTimeout(() => autosaveTabungan(studentId, nominalVal, value), 0);
+    if (tabunganTimeoutRef.current[studentId]) window.clearTimeout(tabunganTimeoutRef.current[studentId]);
+    tabunganTimeoutRef.current[studentId] = window.setTimeout(() => autosaveTabungan(studentId, nominalVal, value), 600);
   };
 
   const handleTabunganSave = async () => {
