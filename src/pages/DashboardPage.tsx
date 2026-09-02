@@ -17,7 +17,7 @@ export function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await dashboardApi.getMetrics();
+        const data = await dashboardApi.getMetrics(mode);
         setMetrics(data);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load dashboard';
@@ -29,7 +29,7 @@ export function DashboardPage() {
     };
 
     loadMetrics();
-  }, []);
+  }, [mode]);
 
   if (loading) {
     return (

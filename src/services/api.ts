@@ -343,8 +343,8 @@ export const amalJumatApi = {
 
 // Dashboard API
 export const dashboardApi = {
-  async getMetrics(): Promise<DashboardMetrics> {
-    return fetchApi<DashboardMetrics>('/dashboard');
+  async getMetrics(category: 'siswa' | 'guru' = 'siswa'): Promise<DashboardMetrics> {
+    return fetchApi<DashboardMetrics>(`/dashboard?category=${category}`);
   },
 };
 
