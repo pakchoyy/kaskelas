@@ -298,7 +298,14 @@ export function RecapPage() {
           </div>
         )}
 
-        {contributionFilter === 'tabungan' ? (
+        {mode === 'guru' ? (
+          <div className="grid grid-cols-2 gap-3">
+            <InfoCard title="Total Tabungan Guru" value={formatCurrency(recap.totalKasMasuk)} />
+            <InfoCard title="Saldo Guru" value={formatCurrency(recap.saldoKelas)} tone="brand" />
+            <InfoCard title="Pemasukan Lain Guru" value={formatCurrency(recap.totalPemasukanLain)} />
+            <InfoCard title="Pengeluaran Guru" value={formatCurrency(recap.totalPengeluaran)} />
+          </div>
+        ) : contributionFilter === 'tabungan' ? (
           <div className="grid grid-cols-2 gap-3">
             <InfoCard title="Total Tabungan Masuk" value={formatCurrency(recap.totalTabunganMasuk)} />
             <InfoCard title="Total Penarikan Tabungan" value={formatCurrency(recap.totalTabunganPenarikan)} />
