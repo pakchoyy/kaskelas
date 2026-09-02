@@ -34,6 +34,8 @@ export function FinancePage() {
   const [draftDate, setDraftDate] = useState(todayIsoDate());
   const [draftNominal, setDraftNominal] = useState('');
   const [draftNote, setDraftNote] = useState('');
+  const [guruTabunganSource, setGuruTabunganSource] = useState<'bulanan' | 'tw'>('bulanan');
+  const [guruKolektif, setGuruKolektif] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
@@ -97,11 +99,17 @@ export function FinancePage() {
 
   const handleSave = () => {
     const nominal = Number(draftNominal);
+    let noteToSave = draftNote;
+    if (mode === 'guru' && draftType === 'Pengeluaran') {
+      const prefix = guruTabunganSource === 'bulanan' ? '[Bulanan]' : '[TW]';
+      const kolektifNote = guruKolektif ? 'Kolektif' : 'Pribadi';
+      noteToSave = `${prefix} ${kolektifNote}: ${draftNote}`.trim();
+    }
     const result =
       formMode === 'create'
-        ? addFinanceTransaction(draftType, draftDate, nominal, draftNote)
+        ? addFinanceTransaction(draftType, draftDate, nominal, noteToSave)
         : activeTransactionId
-          ? updateFinanceTransaction(activeTransactionId, draftType, draftDate, nominal, draftNote)
+          ? updateFinanceTransaction(activeTransactionId, draftType, draftDate, nominal, noteToSave)
           : false;
 
     if (!result) {
@@ -309,6 +317,25 @@ export function FinancePage() {
             />
           </label>
 
+          {mode === 'guru' && draftType === 'Pengeluaran' && (
+            <>
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Sumber Tabungan</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setGuruTabunganSource('bulanan')} className={`h-11 rounded-xl text-sm font-semibold ${guruTabunganSource === 'bulanan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Bulanan</button>
+                  <button type="button" onClick={() => setGuruTabunganSource('tw')} className={`h-11 rounded-xl text-sm font-semibold ${guruTabunganSource === 'tw' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>TW</button>
+                </div>
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Jenis Tarik</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setGuruKolektif(true)} className={`h-11 rounded-xl text-sm font-semibold ${guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Kolektif (÷9)</button>
+                  <button type="button" onClick={() => setGuruKolektif(false)} className={`h-11 rounded-xl text-sm font-semibold ${!guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Pribadi</button>
+                </div>
+                {guruKolektif && <p className="text-xs text-slate-500">Kolektif: nominal akan dibagi rata per guru dan masuk Rekap Guru sebagai pengurang saldo.</p>}
+              </label>
+            </>
+          )}
           <label className="block space-y-2">
             <span className="text-sm font-medium text-slate-700">Keterangan</span>
             <textarea
