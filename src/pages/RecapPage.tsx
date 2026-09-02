@@ -156,17 +156,16 @@ export function RecapPage() {
     loadKasBulanan();
   }, [contributionFilter, kasView, kasBaruView, kasBaruMonth, recap]);
 
-  // Guru rekap per bulan
+  // Guru rekap per bulan — filter by period (bukan date) biar Agustus tidak nyangkut di September
   useEffect(() => {
     if (mode !== 'guru' || guruRecapView !== 'bulanan' || !recap) return;
     const loadGuruBulanan = async () => {
       try {
         setGuruRecapBulananLoading(true);
-        const from = `${guruRecapMonth.year}-${String(guruRecapMonth.month).padStart(2, '0')}-01`;
-        const lastDay = new Date(guruRecapMonth.year, guruRecapMonth.month, 0).getDate();
-        const to = `${guruRecapMonth.year}-${String(guruRecapMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const apiType = mapContributionTypeToApi(contributionFilter);
-        const data = await contributionsApi.getAll({ contributionType: apiType as any, dateFrom: from, dateTo: to });
+        const isTw = apiType === 'tabungan_guru_tw';
+        const periodMonth = isTw ? Math.floor((guruRecapMonth.month - 1) / 3) + 1 : guruRecapMonth.month;
+        const data = await contributionsApi.getAll({ contributionType: apiType as any, periodMonth, periodYear: guruRecapMonth.year });
         const map = new Map<string, number>();
         data.forEach((c) => map.set(c.studentId, (map.get(c.studentId) || 0) + c.nominal));
         const rows = recap.perStudent.map((s) => ({ id: s.id, name: s.name, total: map.get(s.id) || 0 }));
