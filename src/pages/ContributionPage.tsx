@@ -6,6 +6,7 @@ import { NominalStepper } from '../components/NominalStepper';
 import { NotesSection } from '../components/NotesSection';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { useAppMode } from '../hooks/useAppMode';
 import { useContributions } from '../hooks/useContributions';
 import { useNotes } from '../hooks/useNotes';
 import { useAmalJumatMarker } from '../hooks/useAmalJumatMarker';
@@ -14,7 +15,7 @@ import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
 
-type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks';
+type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw';
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
 type SemesterNumber = 1 | 2;
 
@@ -33,9 +34,21 @@ const contributionTypes = [
   { value: 'lks' as const, label: 'LKS' },
 ];
 
+const contributionTypesGuru = [
+  { value: 'tabungan-guru-bulanan' as const, label: 'Tabungan Bulanan' },
+  { value: 'tabungan-guru-tw' as const, label: 'Tabungan TW' },
+];
+
 const semesterOptions: Array<{ value: SemesterNumber; label: string }> = [
   { value: 1, label: 'Semester 1' },
   { value: 2, label: 'Semester 2' },
+];
+
+const twOptions = [
+  { value: 1, label: 'Triwulan 1' },
+  { value: 2, label: 'Triwulan 2' },
+  { value: 3, label: 'Triwulan 3' },
+  { value: 4, label: 'Triwulan 4' },
 ];
 
 function toIsoLocalDate(date: Date): string {
@@ -92,12 +105,19 @@ function getMonthInfo(dateIso: string): { year: number; month: number; monthName
 }
 
 export function ContributionPage() {
-  const { students, cashRecords, setCheckedStudents, saveCurrentState, contributions, reload } = useAppData();
+  const { students: allStudents, cashRecords, setCheckedStudents, saveCurrentState, contributions, reload } = useAppData();
   const { settings, updateDailyCashNominal } = useAppSettings();
+  const { mode } = useAppMode();
+  const students = useMemo(() => allStudents.filter((s) => (s.category || 'siswa') === mode), [allStudents, mode]);
   
   const [contributionType, setContributionType] = useState<ContributionType>('kas-kelas');
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'guru') setContributionType('tabungan-guru-bulanan');
+    else setContributionType('kas-kelas');
+  }, [mode]);
   
   // State untuk edit nominal Kas Kelas
   const [editNominalOpen, setEditNominalOpen] = useState(false);
@@ -292,6 +312,39 @@ export function ContributionPage() {
   }, [getLksPaidIds, lksNominal]);
 
   const lksPeriodKey = `${lksYear}-S${lksSemester}`;
+
+  // Guru Tabungan logic
+  const guruBulananNominal = 50000;
+  const {
+    toggleStudent: toggleGuruBulanan,
+    hasStudentPaid: hasGuruBulananPaid,
+    getPaidStudentIds: getGuruBulananIds,
+  } = useContributions('tabungan-guru-bulanan' as any, {
+    periodMonth: monthInfo.month + 1,
+    periodYear: monthInfo.year,
+  });
+  const guruBulananStats = useMemo(() => {
+    const paidCount = getGuruBulananIds().length;
+    return { paidCount, total: paidCount * guruBulananNominal };
+  }, [getGuruBulananIds]);
+
+  const guruTwNominal = 50000;
+  const twPeriod = useMemo(() => {
+    const triwulan = Math.floor(monthInfo.month / 3) + 1;
+    return { triwulan, year: monthInfo.year };
+  }, [monthInfo]);
+  const {
+    toggleStudent: toggleGuruTw,
+    hasStudentPaid: hasGuruTwPaid,
+    getPaidStudentIds: getGuruTwIds,
+  } = useContributions('tabungan-guru-tw' as any, {
+    periodMonth: twPeriod.triwulan,
+    periodYear: twPeriod.year,
+  });
+  const guruTwStats = useMemo(() => {
+    const paidCount = getGuruTwIds().length;
+    return { paidCount, total: paidCount * guruTwNominal };
+  }, [getGuruTwIds]);
   const lksNotes = useNotes('lks', lksPeriodKey);
 
   // Tabungan logic - calculate balance per student
@@ -569,10 +622,16 @@ export function ContributionPage() {
         date.setDate(date.getDate() - 7);
         return toIsoLocalDate(date);
       });
-    } else if (contributionType === 'paguyuban-ngaji') {
+    } else if (contributionType === 'paguyuban-ngaji' || contributionType === 'tabungan-guru-bulanan') {
       setAnchorDate((prev) => {
         const date = new Date(`${prev}T00:00:00`);
         date.setMonth(date.getMonth() - 1);
+        return toIsoLocalDate(date);
+      });
+    } else if (contributionType === 'tabungan-guru-tw') {
+      setAnchorDate((prev) => {
+        const date = new Date(`${prev}T00:00:00`);
+        date.setMonth(date.getMonth() - 3);
         return toIsoLocalDate(date);
       });
     }
@@ -591,19 +650,26 @@ export function ContributionPage() {
         date.setDate(date.getDate() + 7);
         return toIsoLocalDate(date);
       });
-    } else if (contributionType === 'paguyuban-ngaji') {
+    } else if (contributionType === 'paguyuban-ngaji' || contributionType === 'tabungan-guru-bulanan') {
       setAnchorDate((prev) => {
         const date = new Date(`${prev}T00:00:00`);
         date.setMonth(date.getMonth() + 1);
         return toIsoLocalDate(date);
       });
+    } else if (contributionType === 'tabungan-guru-tw') {
+      setAnchorDate((prev) => {
+        const date = new Date(`${prev}T00:00:00`);
+        date.setMonth(date.getMonth() + 3);
+        return toIsoLocalDate(date);
+      });
     }
   };
 
-  const currentTypeLabel = contributionTypes.find((t) => t.value === contributionType)?.label || '';
+  const typesToShow = mode === 'guru' ? contributionTypesGuru : contributionTypes;
+  const currentTypeLabel = typesToShow.find((t) => t.value === contributionType)?.label || '';
 
   return (
-    <PageShell title="Iuran" description="Catat iuran siswa untuk berbagai jenis iuran.">
+    <PageShell title="Iuran" description={mode === 'guru' ? 'Catat iuran guru.' : 'Catat iuran siswa untuk berbagai jenis iuran.'}>
       <div className="space-y-3">
         {/* Dropdown Jenis Iuran */}
         <div className="relative">
@@ -617,7 +683,7 @@ export function ContributionPage() {
           </button>
           {dropdownOpen && (
             <div className="absolute top-full z-10 mt-1 w-full rounded-2xl border border-slate-200 bg-white shadow-lg">
-              {contributionTypes.map((type) => (
+              {typesToShow.map((type) => (
                 <button
                   key={type.value}
                   type="button"
@@ -1076,6 +1142,86 @@ export function ContributionPage() {
               onUpdate={lksNotes.updateNote}
               onDelete={lksNotes.removeNote}
             />
+          </>
+        )}
+
+        {/* MODE TABUNGAN GURU BULANAN */}
+        {contributionType === 'tabungan-guru-bulanan' && (
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <h3 className="text-sm font-semibold text-slate-900">Tabungan Guru Bulanan</h3>
+              <div className="mt-2 flex items-center justify-between">
+                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronLeft className="h-5 w-5" strokeWidth={2} /></button>
+                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
+                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                <p className="text-xs text-slate-500">Iuran per guru</p>
+                <p className="text-base font-semibold text-slate-900">{formatCurrency(guruBulananNominal)}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+                <div className="space-y-2">
+                  {students.map((student, index) => {
+                    const isPaid = hasGuruBulananPaid(student.id);
+                    return (
+                      <button key={student.id} type="button" onClick={() => toggleGuruBulanan(student.id, guruBulananNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{guruBulananStats.paidCount} guru</p></div>
+                <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruBulananStats.total)}</p></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
+          </>
+        )}
+
+        {/* MODE TABUNGAN GURU TW */}
+        {contributionType === 'tabungan-guru-tw' && (
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <h3 className="text-sm font-semibold text-slate-900">Tabungan Guru TW</h3>
+              <div className="mt-2 flex items-center justify-between">
+                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronLeft className="h-5 w-5" strokeWidth={2} /></button>
+                <p className="text-sm font-medium text-slate-700">TW {twPeriod.triwulan} - {twPeriod.year}</p>
+                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                <p className="text-xs text-slate-500">Iuran per guru</p>
+                <p className="text-base font-semibold text-slate-900">{formatCurrency(guruTwNominal)}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+                <div className="space-y-2">
+                  {students.map((student, index) => {
+                    const isPaid = hasGuruTwPaid(student.id);
+                    return (
+                      <button key={student.id} type="button" onClick={() => toggleGuruTw(student.id, guruTwNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{guruTwStats.paidCount} guru</p></div>
+                <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruTwStats.total)}</p></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
 
