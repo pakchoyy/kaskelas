@@ -29,8 +29,8 @@ export function AppLayout() {
                   </p>
                   <h1 className="mt-1 truncate text-base font-semibold text-slate-900">
                     {settings.className?.trim()
-                      ? `Kas Kelas ${settings.className.trim()}`
-                      : 'Kas Kelas'}
+                      ? `Kas Kelas ${settings.className.trim()} dan Tabungan Guru`
+                      : 'Kas Kelas dan Tabungan Guru'}
                   </h1>
                   <p className="truncate text-xs text-slate-500">
                     {settings.schoolYear?.trim()
