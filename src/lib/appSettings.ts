@@ -6,6 +6,7 @@ export type AppSettings = {
   dailyCashNominal: number;
   className: string;
   schoolYear: string;
+  backupEmail: string;
 };
 
 export const APP_SETTINGS_KEY = 'bgy-kas-kelas-settings';
@@ -15,6 +16,7 @@ export const defaultAppSettings: AppSettings = {
   dailyCashNominal: 1000,
   className: '',
   schoolYear: '',
+  backupEmail: '',
 };
 
 export function loadAppSettings(): AppSettings {
