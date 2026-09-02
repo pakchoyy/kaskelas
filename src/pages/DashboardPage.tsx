@@ -90,10 +90,21 @@ export function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <InfoCard title={mode === 'guru' ? 'Guru Aktif' : 'Siswa Aktif'} value={metrics.totalStudents.toString()} />
-          <InfoCard title={mode === 'guru' ? 'Total Tabungan Guru' : 'Total Tabungan'} value={formatCurrency(metrics.totalTabungan)} />
-          <InfoCard title={mode === 'guru' ? 'Tabungan Masuk' : 'Kas Masuk'} value={formatCurrency(metrics.totalKasMasuk)} />
-          <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
-          <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
+          {mode === 'guru' ? (
+            <>
+              <InfoCard title="Tabungan Bulanan" value={formatCurrency((metrics as any).totalTabunganGuruBulanan || 0)} />
+              <InfoCard title="Tabungan TW" value={formatCurrency((metrics as any).totalTabunganGuruTw || 0)} />
+              <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
+              <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
+            </>
+          ) : (
+            <>
+              <InfoCard title="Total Tabungan" value={formatCurrency(metrics.totalTabungan)} />
+              <InfoCard title="Kas Masuk" value={formatCurrency(metrics.totalKasMasuk)} />
+              <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
+              <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
+            </>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">

@@ -74,6 +74,8 @@ export type DashboardMetrics = {
   totalStudents: number;
   totalKasMasuk: number;
   totalTabungan: number;
+  totalTabunganGuruBulanan: number;
+  totalTabunganGuruTw: number;
   totalPemasukanLain: number;
   totalPengeluaran: number;
   saldo: number;

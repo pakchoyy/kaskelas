@@ -16,6 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalStudents: string;
       totalKasMasuk: string;
       totalTabungan: string;
+      totalGuruBulanan: string;
+      totalGuruTw: string;
       totalPemasukanLain: string;
       totalPengeluaran: string;
     }>(
@@ -24,6 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           (SELECT COUNT(*) FROM students WHERE active = true AND category = $1) as total_students,
           (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'kas_kelas' AND s.active = true AND s.category = $1) as total_kas,
           (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type IN ('tabungan','tabungan_guru_bulanan','tabungan_guru_tw') AND s.active = true AND s.category = $1) as total_tabungan,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_bulanan' AND s.active = true AND s.category = 'guru') as total_guru_bulanan,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_tw' AND s.active = true AND s.category = 'guru') as total_guru_tw,
           (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pemasukan' AND category = $1) as total_pemasukan,
           (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pengeluaran' AND category = $1) as total_pengeluaran
        )
@@ -31,6 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         total_students::text as "totalStudents",
         total_kas::text as "totalKasMasuk",
         total_tabungan::text as "totalTabungan",
+        total_guru_bulanan::text as "totalGuruBulanan",
+        total_guru_tw::text as "totalGuruTw",
         total_pemasukan::text as "totalPemasukanLain",
         total_pengeluaran::text as "totalPengeluaran"
        FROM metrics`,
@@ -40,6 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const totalStudents = parseInt(metricsResult?.totalStudents || '0', 10);
     const totalKasMasuk = parseInt(metricsResult?.totalKasMasuk || '0', 10);
     const totalTabungan = parseInt(metricsResult?.totalTabungan || '0', 10);
+    const totalTabunganGuruBulanan = parseInt((metricsResult as any)?.totalGuruBulanan || '0', 10);
+    const totalTabunganGuruTw = parseInt((metricsResult as any)?.totalGuruTw || '0', 10);
     const totalPemasukanLain = parseInt(metricsResult?.totalPemasukanLain || '0', 10);
     const totalPengeluaran = parseInt(metricsResult?.totalPengeluaran || '0', 10);
     const saldo = totalKasMasuk + totalPemasukanLain - totalPengeluaran;
@@ -98,6 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalStudents,
       totalKasMasuk,
       totalTabungan,
+      totalTabunganGuruBulanan,
+      totalTabunganGuruTw,
       totalPemasukanLain,
       totalPengeluaran,
       saldo,
