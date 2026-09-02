@@ -10,8 +10,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     
     const contributionType = parseQueryParam(req.query.contribution_type) || 'kas_kelas';
+    const isGuruType = contributionType === 'tabungan_guru_bulanan' || contributionType === 'tabungan_guru_tw';
+    const categoryFilter = isGuruType ? 'guru' : 'siswa';
     
-    // Get all active students with their payment stats
+    // Get all active students with their payment stats (filter by kategori)
     const perStudent = await query<{
       id: string;
       name: string;
@@ -26,10 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       FROM students s
       LEFT JOIN contributions c ON s.id = c.student_id 
         AND c.contribution_type = $1
-      WHERE s.active = true
+      WHERE s.active = true AND s.category = $2
       GROUP BY s.id, s.name
       ORDER BY s.created_at`,
-      [contributionType]
+      [contributionType, categoryFilter]
     );
     
     // Add row numbers
@@ -97,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         LEFT JOIN contributions c ON s.id = c.student_id 
           AND c.contribution_type = 'paguyuban_ngaji'
           AND c.period_year = $1
-        WHERE s.active = true
+        WHERE s.active = true AND s.category = 'siswa'
         GROUP BY s.id, s.name
         ORDER BY s.created_at`,
         [currentYear]

@@ -5,6 +5,7 @@ import { formatCurrency } from '../lib/format';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { recapApi, contributionsApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
+import { useAppMode } from '../hooks/useAppMode';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -29,7 +30,7 @@ function formatLunasRange(months: number[]): string {
   return parts.join(', ');
 }
 
-type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji' | 'lks';
+type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw';
 
 type KasView = 'per-siswa' | 'total-kas';
 
@@ -38,6 +39,7 @@ export function RecapPage() {
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [filterOpen, setFilterOpen] = useState(false);
   const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('kas-kelas');
+  const { mode } = useAppMode();
   const [kasView, setKasView] = useState<KasView>('per-siswa');
   const [kasViewOpen, setKasViewOpen] = useState(false);
   const [kasDetailOpen, setKasDetailOpen] = useState(false);
@@ -79,6 +81,11 @@ export function RecapPage() {
 
     loadRecap();
   }, [contributionFilter]);
+
+  useEffect(() => {
+    if (mode === 'guru') setContributionFilter('tabungan-guru-bulanan');
+    else setContributionFilter('kas-kelas');
+  }, [mode]);
 
   // Tabungan per bulan
   useEffect(() => {
@@ -210,77 +217,28 @@ export function RecapPage() {
                 {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
                 {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
                 {contributionFilter === 'lks' && 'LKS'}
+                {contributionFilter === 'tabungan-guru-bulanan' && 'Tabungan Bulanan'}
+                {contributionFilter === 'tabungan-guru-tw' && 'Tabungan TW'}
               </span>
               <ChevronDown className="h-5 w-5 text-slate-400" strokeWidth={2} />
             </button>
 
             {filterOpen && (
               <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContributionFilter('kas-kelas');
-                    setFilterOpen(false);
-                    setKasView('per-siswa');
-                  }}
-                  className={`block w-full px-4 py-3 text-left text-sm ${
-                    contributionFilter === 'kas-kelas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
-                  }`}
-                >
-                  Kas Kelas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContributionFilter('tabungan');
-                    setFilterOpen(false);
-                    setKasView('per-siswa');
-                  }}
-                  className={`block w-full px-4 py-3 text-left text-sm ${
-                    contributionFilter === 'tabungan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
-                  }`}
-                >
-                  Tabungan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContributionFilter('amal-jumat');
-                    setFilterOpen(false);
-                    setKasView('per-siswa');
-                  }}
-                  className={`block w-full px-4 py-3 text-left text-sm ${
-                    contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
-                  }`}
-                >
-                  Amal Jumat
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContributionFilter('paguyuban-ngaji');
-                    setFilterOpen(false);
-                    setKasView('per-siswa');
-                  }}
-                  className={`block w-full px-4 py-3 text-left text-sm ${
-                    contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
-                  }`}
-                >
-                  Paguyuban Ngaji
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContributionFilter('lks');
-                    setFilterOpen(false);
-                    setKasView('per-siswa');
-                  }}
-                  className={`block w-full px-4 py-3 text-left text-sm ${
-                    contributionFilter === 'lks' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
-                  }`}
-                >
-                  LKS
-                </button>
+                {mode === 'guru' ? (
+                  <>
+                    <button type="button" onClick={() => { setContributionFilter('tabungan-guru-bulanan'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'tabungan-guru-bulanan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Tabungan Bulanan</button>
+                    <button type="button" onClick={() => { setContributionFilter('tabungan-guru-tw'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'tabungan-guru-tw' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Tabungan TW</button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => { setContributionFilter('kas-kelas'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'kas-kelas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Kas Kelas</button>
+                    <button type="button" onClick={() => { setContributionFilter('tabungan'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'tabungan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Tabungan</button>
+                    <button type="button" onClick={() => { setContributionFilter('amal-jumat'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Amal Jumat</button>
+                    <button type="button" onClick={() => { setContributionFilter('paguyuban-ngaji'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Paguyuban Ngaji</button>
+                    <button type="button" onClick={() => { setContributionFilter('lks'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'lks' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>LKS</button>
+                  </>
+                )}
               </div>
             )}
           </div>
