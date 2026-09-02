@@ -1,4 +1,8 @@
 {
+  "crons": [
+    { "path": "/api/backup?cron=1&mode=siswa", "schedule": "0 1 1 * *" },
+    { "path": "/api/backup?cron=1&mode=guru", "schedule": "0 1 1 * *" }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
