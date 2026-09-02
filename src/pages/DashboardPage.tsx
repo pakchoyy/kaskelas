@@ -89,9 +89,9 @@ export function DashboardPage() {
         <InfoCard title="Saldo Kas" value={formatCurrency(metrics.saldo)} tone="brand" />
 
         <div className="grid grid-cols-2 gap-3">
-          <InfoCard title="Siswa Aktif" value={metrics.totalStudents.toString()} />
-          <InfoCard title="Total Tabungan" value={formatCurrency(metrics.totalTabungan)} />
-          <InfoCard title="Kas Masuk" value={formatCurrency(metrics.totalKasMasuk)} />
+          <InfoCard title={mode === 'guru' ? 'Guru Aktif' : 'Siswa Aktif'} value={metrics.totalStudents.toString()} />
+          <InfoCard title={mode === 'guru' ? 'Total Tabungan Guru' : 'Total Tabungan'} value={formatCurrency(metrics.totalTabungan)} />
+          <InfoCard title={mode === 'guru' ? 'Tabungan Masuk' : 'Kas Masuk'} value={formatCurrency(metrics.totalKasMasuk)} />
           <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
           <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
         </div>

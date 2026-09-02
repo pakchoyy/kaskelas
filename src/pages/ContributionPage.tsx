@@ -110,13 +110,13 @@ export function ContributionPage() {
   const { mode } = useAppMode();
   const students = useMemo(() => allStudents.filter((s) => (s.category || 'siswa') === mode), [allStudents, mode]);
   
-  const [contributionType, setContributionType] = useState<ContributionType>('kas-kelas');
+  const [contributionType, setContributionType] = useState<ContributionType>(() => (mode === 'guru' ? 'tabungan-guru-bulanan' : 'kas-kelas'));
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (mode === 'guru') setContributionType('tabungan-guru-bulanan');
-    else setContributionType('kas-kelas');
+    if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw'].includes(contributionType)) setContributionType('tabungan-guru-bulanan');
+    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw'].includes(contributionType)) setContributionType('kas-kelas');
   }, [mode]);
   
   // State untuk edit nominal Kas Kelas
@@ -315,36 +315,93 @@ export function ContributionPage() {
 
   // Guru Tabungan logic
   const guruBulananNominal = 50000;
+  const [guruBulananNominals, setGuruBulananNominals] = useState<Record<string, string>>({});
   const {
+    contributions: guruBulananRecords,
     toggleStudent: toggleGuruBulanan,
     hasStudentPaid: hasGuruBulananPaid,
     getPaidStudentIds: getGuruBulananIds,
+    addContribution: addGuruBulanan,
+    updateContribution: updateGuruBulanan,
+    removeContribution: removeGuruBulanan,
+    loading: guruBulananLoading,
   } = useContributions('tabungan-guru-bulanan' as any, {
     periodMonth: monthInfo.month + 1,
     periodYear: monthInfo.year,
   });
   const guruBulananStats = useMemo(() => {
-    const paidCount = getGuruBulananIds().length;
-    return { paidCount, total: paidCount * guruBulananNominal };
-  }, [getGuruBulananIds]);
+    const total = guruBulananRecords.reduce((sum, c) => sum + c.nominal, 0);
+    return { paidCount: guruBulananRecords.length, total };
+  }, [guruBulananRecords]);
 
   const guruTwNominal = 50000;
+  const [guruTwNominals, setGuruTwNominals] = useState<Record<string, string>>({});
   const twPeriod = useMemo(() => {
     const triwulan = Math.floor(monthInfo.month / 3) + 1;
     return { triwulan, year: monthInfo.year };
   }, [monthInfo]);
   const {
+    contributions: guruTwRecords,
     toggleStudent: toggleGuruTw,
     hasStudentPaid: hasGuruTwPaid,
     getPaidStudentIds: getGuruTwIds,
+    addContribution: addGuruTw,
+    updateContribution: updateGuruTw,
+    removeContribution: removeGuruTw,
+    loading: guruTwLoading,
   } = useContributions('tabungan-guru-tw' as any, {
     periodMonth: twPeriod.triwulan,
     periodYear: twPeriod.year,
   });
   const guruTwStats = useMemo(() => {
-    const paidCount = getGuruTwIds().length;
-    return { paidCount, total: paidCount * guruTwNominal };
-  }, [getGuruTwIds]);
+    const total = guruTwRecords.reduce((sum, c) => sum + c.nominal, 0);
+    return { paidCount: guruTwRecords.length, total };
+  }, [guruTwRecords]);
+
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    guruBulananRecords.forEach((c) => next[c.studentId] = String(c.nominal));
+    setGuruBulananNominals(next);
+  }, [guruBulananRecords]);
+
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    guruTwRecords.forEach((c) => next[c.studentId] = String(c.nominal));
+    setGuruTwNominals(next);
+  }, [guruTwRecords]);
+
+  const handleGuruBulananChange = (studentId: string, value: string) => {
+    setGuruBulananNominals((prev) => ({ ...prev, [studentId]: value }));
+    setTimeout(() => autosaveGuruBulanan(studentId, value), 0);
+  };
+  const autosaveGuruBulanan = async (studentId: string, value: string) => {
+    const nominal = parseInt(value, 10) || 0;
+    const existing = guruBulananRecords.find((c) => c.studentId === studentId);
+    try {
+      if (nominal > 0) {
+        if (!existing) await addGuruBulanan(studentId, nominal, undefined, monthInfo.month + 1, monthInfo.year);
+        else if (existing.nominal !== nominal) await updateGuruBulanan(existing.id, { nominal });
+      } else if (existing) {
+        await removeGuruBulanan(existing.id);
+      }
+    } catch (err) { console.error('Guru bulanan save gagal', err); }
+  };
+  const handleGuruTwChange = (studentId: string, value: string) => {
+    setGuruTwNominals((prev) => ({ ...prev, [studentId]: value }));
+    setTimeout(() => autosaveGuruTw(studentId, value), 0);
+  };
+  const autosaveGuruTw = async (studentId: string, value: string) => {
+    const nominal = parseInt(value, 10) || 0;
+    const existing = guruTwRecords.find((c) => c.studentId === studentId);
+    try {
+      if (nominal > 0) {
+        if (!existing) await addGuruTw(studentId, nominal, undefined, twPeriod.triwulan, twPeriod.year);
+        else if (existing.nominal !== nominal) await updateGuruTw(existing.id, { nominal });
+      } else if (existing) {
+        await removeGuruTw(existing.id);
+      }
+    } catch (err) { console.error('Guru TW save gagal', err); }
+  };
   const lksNotes = useNotes('lks', lksPeriodKey);
 
   // Tabungan logic - calculate balance per student
@@ -1161,17 +1218,14 @@ export function ContributionPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+              {guruBulananLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
-                    const isPaid = hasGuruBulananPaid(student.id);
-                    return (
-                      <button key={student.id} type="button" onClick={() => toggleGuruBulanan(student.id, guruBulananNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div>
-                      </button>
-                    );
-                  })}
+                  {students.map((student, index) => (
+                    <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                      <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                      <NominalStepper value={guruBulananNominals[student.id] || ''} onChange={(v) => handleGuruBulananChange(student.id, v)} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1201,17 +1255,14 @@ export function ContributionPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+              {guruTwLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
-                    const isPaid = hasGuruTwPaid(student.id);
-                    return (
-                      <button key={student.id} type="button" onClick={() => toggleGuruTw(student.id, guruTwNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div>
-                      </button>
-                    );
-                  })}
+                  {students.map((student, index) => (
+                    <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                      <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                      <NominalStepper value={guruTwNominals[student.id] || ''} onChange={(v) => handleGuruTwChange(student.id, v)} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
