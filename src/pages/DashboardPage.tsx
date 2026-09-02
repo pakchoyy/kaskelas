@@ -76,7 +76,7 @@ export function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setMode('siswa')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'siswa' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
             <p className={`text-xs font-semibold ${mode === 'siswa' ? 'text-brand-700' : 'text-slate-500'}`}>Siswa</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.totalStudents}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">11</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>
           <button type="button" onClick={() => setMode('guru')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'guru' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
