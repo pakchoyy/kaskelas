@@ -154,8 +154,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     if (typeof periodYear !== 'number' || periodYear < 2000) {
       return sendError(res, 'Tabungan Guru Bulanan requires period_year');
     }
-    if (nominal !== 50000) {
-      return sendError(res, 'Tabungan Guru Bulanan nominal must be 50000');
+    if (typeof nominal !== 'number' || nominal <= 0) {
+      return sendError(res, 'Tabungan Guru Bulanan nominal must be positive');
     }
   }
 
@@ -166,8 +166,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     if (typeof periodYear !== 'number' || periodYear < 2000) {
       return sendError(res, 'Tabungan Guru TW requires period_year');
     }
-    if (nominal !== 50000) {
-      return sendError(res, 'Tabungan Guru TW nominal must be 50000');
+    if (typeof nominal !== 'number' || nominal <= 0) {
+      return sendError(res, 'Tabungan Guru TW nominal must be positive');
     }
   }
   
@@ -258,8 +258,8 @@ async function handleUpdateContribution(req: VercelRequest, res: VercelResponse)
   if (existing.contributionType === 'paguyuban_ngaji' && nominal !== undefined && nominal !== 12000) {
     return sendError(res, 'Paguyuban Ngaji nominal must be 12000');
   }
-  if ((existing.contributionType === 'tabungan_guru_bulanan' || existing.contributionType === 'tabungan_guru_tw') && nominal !== undefined && nominal !== 50000) {
-    return sendError(res, 'Tabungan Guru nominal must be 50000');
+  if ((existing.contributionType === 'tabungan_guru_bulanan' || existing.contributionType === 'tabungan_guru_tw') && nominal !== undefined && (typeof nominal !== 'number' || nominal <= 0)) {
+    return sendError(res, 'Tabungan Guru nominal must be positive');
   }
   
   // Check amal jumat day constraint
