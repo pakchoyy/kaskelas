@@ -425,6 +425,30 @@ export function ContributionPage() {
       addGuruTw(studentId, nominal, undefined, twPeriod.triwulan, twPeriod.year);
     }
   };
+  const handleGuruBulananSave = async () => {
+    for (const s of students) {
+      const raw = guruBulananNominals[s.id] || '';
+      const nominal = parseInt(raw, 10) || 0;
+      const existing = guruBulananRecords.find((c) => c.studentId === s.id);
+      if (nominal > 0) {
+        if (!existing) await addGuruBulanan(s.id, nominal, undefined, monthInfo.month + 1, monthInfo.year);
+        else if (existing.nominal !== nominal) await updateGuruBulanan(existing.id, { nominal });
+      } else if (existing) await removeGuruBulanan(existing.id);
+    }
+    await reload();
+  };
+  const handleGuruTwSave = async () => {
+    for (const s of students) {
+      const raw = guruTwNominals[s.id] || '';
+      const nominal = parseInt(raw, 10) || 0;
+      const existing = guruTwRecords.find((c) => c.studentId === s.id);
+      if (nominal > 0) {
+        if (!existing) await addGuruTw(s.id, nominal, undefined, twPeriod.triwulan, twPeriod.year);
+        else if (existing.nominal !== nominal) await updateGuruTw(existing.id, { nominal });
+      } else if (existing) await removeGuruTw(existing.id);
+    }
+    await reload();
+  };
   const lksNotes = useNotes('lks', lksPeriodKey);
 
   // Tabungan logic - calculate balance per student
@@ -1264,6 +1288,7 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruBulananStats.total)}</p></div>
               </div>
             </div>
+            <button type="button" onClick={handleGuruBulananSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
@@ -1308,6 +1333,7 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruTwStats.total)}</p></div>
               </div>
             </div>
+            <button type="button" onClick={handleGuruTwSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
