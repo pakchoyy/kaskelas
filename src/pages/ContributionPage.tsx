@@ -402,6 +402,29 @@ export function ContributionPage() {
       }
     } catch (err) { console.error('Guru TW save gagal', err); }
   };
+
+  const handleGuruBulananCheckToggle = (studentId: string) => {
+    const isPaid = hasGuruBulananPaid(studentId);
+    if (isPaid) {
+      const existing = guruBulananRecords.find((c) => c.studentId === studentId);
+      if (existing) removeGuruBulanan(existing.id);
+    } else {
+      const nominalStr = guruBulananNominals[studentId] || '50000';
+      const nominal = parseInt(nominalStr, 10) || 50000;
+      addGuruBulanan(studentId, nominal, undefined, monthInfo.month + 1, monthInfo.year);
+    }
+  };
+  const handleGuruTwCheckToggle = (studentId: string) => {
+    const isPaid = hasGuruTwPaid(studentId);
+    if (isPaid) {
+      const existing = guruTwRecords.find((c) => c.studentId === studentId);
+      if (existing) removeGuruTw(existing.id);
+    } else {
+      const nominalStr = guruTwNominals[studentId] || '50000';
+      const nominal = parseInt(nominalStr, 10) || 50000;
+      addGuruTw(studentId, nominal, undefined, twPeriod.triwulan, twPeriod.year);
+    }
+  };
   const lksNotes = useNotes('lks', lksPeriodKey);
 
   // Tabungan logic - calculate balance per student
@@ -1220,12 +1243,18 @@ export function ContributionPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {guruBulananLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => (
-                    <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                      <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                      <NominalStepper value={guruBulananNominals[student.id] || ''} onChange={(v) => handleGuruBulananChange(student.id, v)} />
-                    </div>
-                  ))}
+                  {students.map((student, index) => {
+                    const isPaid = hasGuruBulananPaid(student.id);
+                    return (
+                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => handleGuruBulananCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
+                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                        </div>
+                        <NominalStepper value={guruBulananNominals[student.id] || ''} onChange={(v) => handleGuruBulananChange(student.id, v)} />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1249,6 +1278,7 @@ export function ContributionPage() {
                 <p className="text-sm font-medium text-slate-700">TW {twPeriod.triwulan} - {twPeriod.year}</p>
                 <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
               </div>
+              <p className="mt-1 text-center text-xs text-slate-400">{twPeriod.triwulan === 1 ? 'Jan - Mar' : twPeriod.triwulan === 2 ? 'Apr - Jun' : twPeriod.triwulan === 3 ? 'Jul - Sep' : 'Okt - Des'}</p>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                 <p className="text-xs text-slate-500">Iuran per guru</p>
                 <p className="text-base font-semibold text-slate-900">{formatCurrency(guruTwNominal)}</p>
@@ -1257,12 +1287,18 @@ export function ContributionPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {guruTwLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => (
-                    <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                      <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                      <NominalStepper value={guruTwNominals[student.id] || ''} onChange={(v) => handleGuruTwChange(student.id, v)} />
-                    </div>
-                  ))}
+                  {students.map((student, index) => {
+                    const isPaid = hasGuruTwPaid(student.id);
+                    return (
+                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => handleGuruTwCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
+                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
+                        </div>
+                        <NominalStepper value={guruTwNominals[student.id] || ''} onChange={(v) => handleGuruTwChange(student.id, v)} />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
