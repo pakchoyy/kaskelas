@@ -4,12 +4,15 @@ import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
+import { useAppMode } from '../hooks/useAppMode';
 import { extractStudentNames, readExcelRows } from '../lib/excel';
 
 type StudentFormMode = 'create' | 'edit';
 
 export function StudentsPage() {
-  const { students, addStudent, updateStudent, deleteStudent, deleteAllStudents } = useAppData();
+  const { mode } = useAppMode();
+  const { students: allStudents, addStudent, updateStudent, deleteStudent, deleteAllStudents } = useAppData();
+  const students = useMemo(() => allStudents.filter((s) => (s.category || 'siswa') === mode), [allStudents, mode]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
@@ -54,11 +57,11 @@ export function StudentsPage() {
     setActiveStudentId(null);
   };
 
-  const handleSave = () => {
-    const result = formMode === 'create' ? addStudent(draftName) : activeStudentId ? updateStudent(activeStudentId, draftName) : false;
+  const handleSave = async () => {
+    const result = formMode === 'create' ? await addStudent(draftName, mode) : activeStudentId ? await updateStudent(activeStudentId, draftName) : false;
 
     if (!result) {
-      setErrorMessage('Nama siswa tidak boleh kosong.');
+      setErrorMessage(mode === 'guru' ? 'Nama guru tidak boleh kosong.' : 'Nama siswa tidak boleh kosong.');
       return;
     }
 
@@ -126,11 +129,11 @@ export function StudentsPage() {
   };
 
   return (
-    <PageShell title="Siswa" description="Kelola daftar siswa kelas.">
+    <PageShell title={mode === 'guru' ? 'Guru' : 'Siswa'} description={mode === 'guru' ? 'Kelola daftar guru.' : 'Kelola daftar siswa kelas.'}>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Total siswa</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{mode === 'guru' ? 'Total guru' : 'Total siswa'}</p>
             <p className="mt-1 text-2xl font-semibold text-slate-900">{students.length}</p>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -211,18 +214,18 @@ export function StudentsPage() {
 
         <BottomSheet
           open={sheetOpen}
-          title={formMode === 'create' ? 'Tambah Siswa' : 'Edit Siswa'}
-          description="Masukkan nama siswa."
+          title={formMode === 'create' ? (mode === 'guru' ? 'Tambah Guru' : 'Tambah Siswa') : (mode === 'guru' ? 'Edit Guru' : 'Edit Siswa')}
+          description={mode === 'guru' ? 'Masukkan nama guru.' : 'Masukkan nama siswa.'}
           onClose={closeSheet}
         >
           <div className="space-y-4">
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">Nama siswa</span>
+              <span className="text-sm font-medium text-slate-700">{mode === 'guru' ? 'Nama guru' : 'Nama siswa'}</span>
               <input
                 autoFocus
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Contoh: Alea"
+                placeholder={mode === 'guru' ? 'Contoh: Pak Budi' : 'Contoh: Alea'}
                 className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none ring-brand-200 focus:border-brand-500 focus:ring-4"
               />
             </label>

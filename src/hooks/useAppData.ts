@@ -99,14 +99,14 @@ export function useAppData() {
   }, [loadData]);
 
   // Student operations
-  const addStudent = useCallback(async (name: string): Promise<boolean> => {
+  const addStudent = useCallback(async (name: string, category: 'siswa' | 'guru' = 'siswa'): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return false;
     }
 
     try {
-      const newStudent = await studentsApi.create(trimmedName);
+      const newStudent = await studentsApi.create(trimmedName, category);
       setStudents(current => [...current, newStudent]);
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
       return true;

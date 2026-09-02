@@ -25,30 +25,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 async function handleGetStudents(req: VercelRequest, res: VercelResponse) {
   const includeInactive = parseQueryParam(req.query.includeInactive) === 'true';
+  const category = parseQueryParam(req.query.category) as 'siswa' | 'guru' | undefined;
   
-  const sql = includeInactive
-    ? 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students ORDER BY created_at'
-    : 'SELECT id, name, active, created_at as "createdAt", updated_at as "updatedAt" FROM students WHERE active = true ORDER BY created_at';
+  let sql = includeInactive
+    ? 'SELECT id, name, active, category, created_at as "createdAt", updated_at as "updatedAt" FROM students WHERE 1=1'
+    : 'SELECT id, name, active, category, created_at as "createdAt", updated_at as "updatedAt" FROM students WHERE active = true';
   
-  const students = await query<Student>(sql);
+  const params: any[] = [];
+  if (category === 'siswa' || category === 'guru') {
+    sql += ` AND category = $${params.length + 1}`;
+    params.push(category);
+  }
+  sql += ' ORDER BY created_at';
+  
+  const students = await query<Student>(sql, params);
   sendSuccess(res, students);
 }
 
 async function handleCreateStudent(req: VercelRequest, res: VercelResponse) {
-  const { name } = req.body;
+  const { name, category } = req.body;
   
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return sendError(res, 'Student name is required and cannot be empty');
   }
+  const cat = category === 'guru' ? 'guru' : 'siswa';
   
   const id = createId('student');
   const now = new Date().toISOString();
   
   const student = await queryOne<Student>(
-    `INSERT INTO students (id, name, active, created_at, updated_at)
-     VALUES ($1, $2, true, $3, $4)
-     RETURNING id, name, active, created_at as "createdAt", updated_at as "updatedAt"`,
-    [id, name.trim(), now, now]
+    `INSERT INTO students (id, name, active, category, created_at, updated_at)
+     VALUES ($1, $2, true, $3, $4, $5)
+     RETURNING id, name, active, category, created_at as "createdAt", updated_at as "updatedAt"`,
+    [id, name.trim(), cat, now, now]
   );
   
   sendSuccess(res, student, 'Student created successfully');
@@ -72,7 +81,7 @@ async function handleUpdateStudent(req: VercelRequest, res: VercelResponse) {
     `UPDATE students
      SET name = $1, updated_at = $2
      WHERE id = $3 AND active = true
-     RETURNING id, name, active, created_at as "createdAt", updated_at as "updatedAt"`,
+     RETURNING id, name, active, category, created_at as "createdAt", updated_at as "updatedAt"`,
     [name.trim(), now, id]
   );
   
@@ -97,7 +106,7 @@ async function handleDeleteStudent(req: VercelRequest, res: VercelResponse) {
     `UPDATE students
      SET active = false, updated_at = $1
      WHERE id = $2 AND active = true
-     RETURNING id, name, active, created_at as "createdAt", updated_at as "updatedAt"`,
+     RETURNING id, name, active, category, created_at as "createdAt", updated_at as "updatedAt"`,
     [now, id]
   );
   

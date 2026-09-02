@@ -35,12 +35,13 @@ export type Student = {
   id: string;
   name: string;
   active: boolean;
+  category: 'siswa' | 'guru';
   createdAt: string;
   updatedAt: string;
 };
 
 // Contribution types
-export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks';
+export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw';
 
 export type Contribution = {
   id: string;
@@ -137,15 +138,18 @@ export type AmalJumatMarker = {
 
 // Students API
 export const studentsApi = {
-  async getAll(includeInactive = false): Promise<Student[]> {
-    const query = includeInactive ? '?includeInactive=true' : '';
+  async getAll(includeInactive = false, category?: 'siswa' | 'guru'): Promise<Student[]> {
+    const params = new URLSearchParams();
+    if (includeInactive) params.set('includeInactive', 'true');
+    if (category) params.set('category', category);
+    const query = params.toString() ? `?${params}` : '';
     return fetchApi<Student[]>(`/students${query}`);
   },
   
-  async create(name: string): Promise<Student> {
+  async create(name: string, category: 'siswa' | 'guru' = 'siswa'): Promise<Student> {
     return fetchApi<Student>('/students', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, category }),
     });
   },
   

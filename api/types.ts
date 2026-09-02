@@ -3,11 +3,12 @@ export type Student = {
   id: string;
   name: string;
   active: boolean;
+  category: 'siswa' | 'guru';
   createdAt: string;
   updatedAt: string;
 };
 
-export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks';
+export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw';
 
 export type Contribution = {
   id: string;

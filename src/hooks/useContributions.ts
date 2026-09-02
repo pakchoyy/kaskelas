@@ -98,7 +98,7 @@ export function useContributions(
           nominal,
         };
 
-        if (apiType === 'paguyuban_ngaji' || apiType === 'lks') {
+        if ((apiType as string) === 'paguyuban_ngaji' || (apiType as string) === 'lks' || (apiType as string) === 'tabungan_guru_bulanan' || (apiType as string) === 'tabungan_guru_tw') {
           data.periodMonth = periodMonth ?? dateOrPeriod.periodMonth;
           data.periodYear = periodYear ?? dateOrPeriod.periodYear;
         }
