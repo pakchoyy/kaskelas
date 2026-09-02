@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
+import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
 
 type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks';
 
@@ -109,6 +110,7 @@ export function useContributions(
 
         const newContribution = await contributionsApi.create(data);
         setContributions(current => [...current, newContribution]);
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to add contribution';
@@ -134,6 +136,7 @@ export function useContributions(
         setContributions(current =>
           current.map(c => (c.id === contributionId ? updated : c))
         );
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update contribution';
@@ -156,6 +159,7 @@ export function useContributions(
     try {
       await contributionsApi.delete(contributionId);
       setContributions(current => current.filter(c => c.id !== contributionId));
+      dispatchAppEvent(APP_DATA_UPDATED_EVENT);
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to remove contribution';
