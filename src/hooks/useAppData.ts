@@ -18,6 +18,7 @@ export type FinanceTransaction = {
   date: string;
   nominal: number;
   note: string;
+  category: 'siswa' | 'guru';
   createdAt: string;
   updatedAt: string;
 };
@@ -284,7 +285,7 @@ export function useAppData() {
 
   // Finance operations
   const addFinanceTransaction = useCallback(
-    async (type: string, date: string, nominal: number, note: string): Promise<boolean> => {
+    async (type: string, date: string, nominal: number, note: string, category: 'siswa' | 'guru' = 'siswa'): Promise<boolean> => {
       const trimmedNote = note.trim();
       if (!trimmedNote || nominal <= 0) {
         return false;
@@ -297,6 +298,7 @@ export function useAppData() {
         date,
         nominal,
         note: trimmedNote,
+        category,
       });
 
       setApiFinanceRecords(current => [...current, newTransaction]);

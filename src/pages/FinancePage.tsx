@@ -4,6 +4,7 @@ import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
+import { useAppMode } from '../hooks/useAppMode';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { extractFinanceRows, readExcelRows } from '../lib/excel';
 import { formatCurrency } from '../lib/format';
@@ -14,12 +15,15 @@ type FinanceTab = 'Pengeluaran' | 'Pemasukan';
 type FinanceFormMode = 'create' | 'edit';
 
 export function FinancePage() {
+  const { mode } = useAppMode();
   const {
-    financeRecords,
-    addFinanceTransaction,
+    financeRecords: allFinanceRecords,
+    addFinanceTransaction: rawAddFinance,
     updateFinanceTransaction,
     deleteFinanceTransaction,
   } = useAppData();
+  const financeRecords = useMemo(() => allFinanceRecords.filter((r) => (r.category || 'siswa') === mode), [allFinanceRecords, mode]);
+  const addFinanceTransaction = (type: string, date: string, nominal: number, note: string) => rawAddFinance(type, date, nominal, note, mode);
   const { settings } = useAppSettings();
   const [activeTab, setActiveTab] = useState<FinanceTab>('Pengeluaran');
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -154,8 +158,8 @@ export function FinancePage() {
 
   return (
     <PageShell
-      title="Keuangan"
-      description="Catat pemasukan lain dan pengeluaran kelas."
+      title={mode === 'guru' ? 'Keuangan Guru' : 'Keuangan'}
+      description={mode === 'guru' ? 'Catat pemasukan dan pengeluaran guru.' : 'Catat pemasukan lain dan pengeluaran kelas.'}
     >
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-4 shadow-soft">

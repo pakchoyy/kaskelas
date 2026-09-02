@@ -31,6 +31,7 @@ export type FinanceTransaction = {
   date: string;
   nominal: number;
   note: string;
+  category: 'siswa' | 'guru';
   createdAt: string;
   updatedAt: string;
 };

@@ -65,6 +65,7 @@ export type FinanceTransaction = {
   date: string;
   nominal: number;
   note: string;
+  category: 'siswa' | 'guru';
   createdAt: string;
   updatedAt: string;
 };
@@ -227,12 +228,14 @@ export const financeApi = {
     type?: TransactionType;
     dateFrom?: string;
     dateTo?: string;
+    category?: 'siswa' | 'guru';
   }): Promise<FinanceTransaction[]> {
     const params = new URLSearchParams();
     
     if (filters?.type) params.set('type', filters.type);
     if (filters?.dateFrom) params.set('date_from', filters.dateFrom);
     if (filters?.dateTo) params.set('date_to', filters.dateTo);
+    if (filters?.category) params.set('category', filters.category);
     
     const query = params.toString() ? `?${params}` : '';
     return fetchApi<FinanceTransaction[]>(`/finance${query}`);
@@ -243,6 +246,7 @@ export const financeApi = {
     date: string;
     nominal: number;
     note: string;
+    category?: 'siswa' | 'guru';
   }): Promise<FinanceTransaction> {
     return fetchApi<FinanceTransaction>('/finance', {
       method: 'POST',
@@ -255,6 +259,7 @@ export const financeApi = {
     date?: string;
     nominal?: number;
     note?: string;
+    category?: 'siswa' | 'guru';
   }): Promise<FinanceTransaction> {
     return fetchApi<FinanceTransaction>(`/finance?id=${id}`, {
       method: 'PATCH',

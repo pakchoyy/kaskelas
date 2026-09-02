@@ -53,7 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `SELECT
         COALESCE(SUM(nominal) FILTER (WHERE type = 'pemasukan'), 0) as "totalPemasukan",
         COALESCE(SUM(nominal) FILTER (WHERE type = 'pengeluaran'), 0) as "totalPengeluaran"
-       FROM finance_transactions`
+       FROM finance_transactions WHERE category = $1`,
+      [categoryFilter]
     );
     const totalPemasukanLain = parseInt(financeTotals?.totalPemasukan || '0', 10);
     const totalPengeluaran = parseInt(financeTotals?.totalPengeluaran || '0', 10);

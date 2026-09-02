@@ -27,6 +27,7 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
   const type = parseQueryParam(req.query.type) as TransactionType | undefined;
   const dateFrom = parseQueryParam(req.query.date_from);
   const dateTo = parseQueryParam(req.query.date_to);
+  const category = parseQueryParam(req.query.category) as 'siswa' | 'guru' | undefined;
   
   let sql = `
     SELECT 
@@ -35,6 +36,7 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
       date::text as date, 
       nominal, 
       note, 
+      category,
       created_at as "createdAt", 
       updated_at as "updatedAt"
     FROM finance_transactions
@@ -47,6 +49,12 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
   if (type && ['pemasukan', 'pengeluaran'].includes(type)) {
     sql += ` AND type = $${paramIndex}`;
     params.push(type);
+    paramIndex++;
+  }
+
+  if (category === 'siswa' || category === 'guru') {
+    sql += ` AND category = $${paramIndex}`;
+    params.push(category);
     paramIndex++;
   }
   
@@ -69,7 +77,7 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
-  const { type, date, nominal, note } = req.body;
+  const { type, date, nominal, note, category } = req.body;
   
   // Validation
   if (!type || !['pemasukan', 'pengeluaran'].includes(type)) {
@@ -87,22 +95,24 @@ async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
   if (!note || typeof note !== 'string' || note.trim().length === 0) {
     return sendError(res, 'Note is required and cannot be empty');
   }
+  const cat = category === 'guru' ? 'guru' : 'siswa';
   
   const id = createId('finance');
   const now = new Date().toISOString();
   
   const transaction = await queryOne<FinanceTransaction>(
-    `INSERT INTO finance_transactions (id, type, date, nominal, note, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO finance_transactions (id, type, date, nominal, note, category, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING 
        id, 
        type, 
        date::text as date, 
        nominal, 
        note, 
+       category,
        created_at as "createdAt", 
        updated_at as "updatedAt"`,
-    [id, type, date, nominal, note.trim(), now, now]
+    [id, type, date, nominal, note.trim(), cat, now, now]
   );
   
   sendSuccess(res, transaction, 'Finance transaction created successfully');
@@ -110,7 +120,7 @@ async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
 
 async function handleUpdateFinance(req: VercelRequest, res: VercelResponse) {
   const id = parseQueryParam(req.query.id);
-  const { type, date, nominal, note } = req.body;
+  const { type, date, nominal, note, category } = req.body;
   
   if (!id) {
     return sendError(res, 'Transaction ID is required');
@@ -131,6 +141,9 @@ async function handleUpdateFinance(req: VercelRequest, res: VercelResponse) {
   
   if (note !== undefined && (typeof note !== 'string' || note.trim().length === 0)) {
     return sendError(res, 'Note cannot be empty');
+  }
+  if (category !== undefined && category !== 'siswa' && category !== 'guru') {
+    return sendError(res, 'Category must be siswa or guru');
   }
   
   const now = new Date().toISOString();
@@ -161,21 +174,27 @@ async function handleUpdateFinance(req: VercelRequest, res: VercelResponse) {
     params.push(note.trim());
     paramIndex++;
   }
+  if (category !== undefined) {
+    updates.push(`category = $${paramIndex}`);
+    params.push(category);
+    paramIndex++;
+  }
   
   params.push(id);
   
   const transaction = await queryOne<FinanceTransaction>(
     `UPDATE finance_transactions
      SET ${updates.join(', ')}
-     WHERE id = $${paramIndex}
-     RETURNING 
-       id, 
-       type, 
-       date::text as date, 
-       nominal, 
-       note, 
-       created_at as "createdAt", 
-       updated_at as "updatedAt"`,
+      WHERE id = $${paramIndex}
+      RETURNING 
+        id, 
+        type, 
+        date::text as date, 
+        nominal, 
+        note, 
+        category,
+        created_at as "createdAt", 
+        updated_at as "updatedAt"`,
     params
   );
   
@@ -195,15 +214,16 @@ async function handleDeleteFinance(req: VercelRequest, res: VercelResponse) {
   
   const transaction = await queryOne<FinanceTransaction>(
     `DELETE FROM finance_transactions
-     WHERE id = $1
-     RETURNING 
-       id, 
-       type, 
-       date::text as date, 
-       nominal, 
-       note, 
-       created_at as "createdAt", 
-       updated_at as "updatedAt"`,
+      WHERE id = $1
+      RETURNING 
+        id, 
+        type, 
+        date::text as date, 
+        nominal, 
+        note, 
+        category,
+        created_at as "createdAt", 
+        updated_at as "updatedAt"`,
     [id]
   );
   
