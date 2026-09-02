@@ -148,16 +148,6 @@ export function StudentsPage() {
               <Upload className="h-4 w-4" strokeWidth={2} />
               Import
             </button>
-            {students.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setDeleteAllOpen(true)}
-                className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-700"
-              >
-                <Trash2 className="h-4 w-4" strokeWidth={2} />
-                Hapus Semua
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={openCreateSheet}
@@ -211,6 +201,17 @@ export function StudentsPage() {
             </ul>
           )}
         </div>
+
+        {students.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setDeleteAllOpen(true)}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={2} />
+            Hapus Semua {mode === 'guru' ? 'Guru' : 'Siswa'}
+          </button>
+        )}
 
         <BottomSheet
           open={sheetOpen}
