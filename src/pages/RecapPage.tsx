@@ -57,6 +57,13 @@ export function RecapPage() {
   });
   const [tabunganBulanan, setTabunganBulanan] = useState<Array<{ id: string; name: string; masuk: number; tarik: number; total: number }>>([]);
   const [tabunganBulananLoading, setTabunganBulananLoading] = useState(false);
+  const [guruRecapView, setGuruRecapView] = useState<'total' | 'bulanan'>('total');
+  const [guruRecapMonth, setGuruRecapMonth] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  });
+  const [guruRecapBulanan, setGuruRecapBulanan] = useState<Array<{ id: string; name: string; total: number }>>([]);
+  const [guruRecapBulananLoading, setGuruRecapBulananLoading] = useState(false);
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +155,30 @@ export function RecapPage() {
     };
     loadKasBulanan();
   }, [contributionFilter, kasView, kasBaruView, kasBaruMonth, recap]);
+
+  // Guru rekap per bulan
+  useEffect(() => {
+    if (mode !== 'guru' || guruRecapView !== 'bulanan' || !recap) return;
+    const loadGuruBulanan = async () => {
+      try {
+        setGuruRecapBulananLoading(true);
+        const from = `${guruRecapMonth.year}-${String(guruRecapMonth.month).padStart(2, '0')}-01`;
+        const lastDay = new Date(guruRecapMonth.year, guruRecapMonth.month, 0).getDate();
+        const to = `${guruRecapMonth.year}-${String(guruRecapMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        const apiType = mapContributionTypeToApi(contributionFilter);
+        const data = await contributionsApi.getAll({ contributionType: apiType as any, dateFrom: from, dateTo: to });
+        const map = new Map<string, number>();
+        data.forEach((c) => map.set(c.studentId, (map.get(c.studentId) || 0) + c.nominal));
+        const rows = recap.perStudent.map((s) => ({ id: s.id, name: s.name, total: map.get(s.id) || 0 }));
+        setGuruRecapBulanan(rows);
+      } catch (err) {
+        console.error('Failed to load guru bulanan:', err);
+      } finally {
+        setGuruRecapBulananLoading(false);
+      }
+    };
+    loadGuruBulanan();
+  }, [mode, guruRecapView, guruRecapMonth, recap, contributionFilter]);
 
   const handleRefresh = async () => {
     setRefreshState('loading');
@@ -518,7 +549,43 @@ export function RecapPage() {
         )}
 
         {kasView === 'per-siswa' && contributionFilter !== 'tabungan' && contributionFilter !== 'paguyuban-ngaji' && (
-          contributionFilter === 'kas-kelas' ? (
+          mode === 'guru' ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setGuruRecapView('total')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${guruRecapView === 'total' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Total</button>
+                <button type="button" onClick={() => setGuruRecapView('bulanan')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${guruRecapView === 'bulanan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Per Bulan</button>
+              </div>
+              {guruRecapView === 'total' ? (
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+                  <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Guru — Total</h3></div>
+                  {recap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data guru</p>) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 text-right font-medium">Total</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">{recap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="truncate px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3">
+                    <button type="button" onClick={() => setGuruRecapMonth((m) => m.month === 1 ? { year: m.year - 1, month: 12 } : { year: m.year, month: m.month - 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+                    <p className="text-sm font-semibold text-slate-900">{monthShortNames[guruRecapMonth.month - 1]} {guruRecapMonth.year}</p>
+                    <button type="button" onClick={() => setGuruRecapMonth((m) => m.month === 12 ? { year: m.year + 1, month: 1 } : { year: m.year, month: m.month + 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+                  </div>
+                  {guruRecapBulananLoading ? (<p className="py-12 text-center text-sm text-slate-500">Memuat...</p>) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 text-right font-medium">Total</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">{guruRecapBulanan.map((row, index) => (<tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{index + 1}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td><td className="truncate px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(row.total)}</td></tr>))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : contributionFilter === 'kas-kelas' ? (
             <>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setKasBaruView('total')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${kasBaruView === 'total' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Total Kas</button>
