@@ -94,7 +94,6 @@ export function DashboardPage() {
             <>
               <InfoCard title="Tabungan Bulanan" value={formatCurrency((metrics as any).totalTabunganGuruBulanan || 0)} />
               <InfoCard title="Tabungan TW" value={formatCurrency((metrics as any).totalTabunganGuruTw || 0)} />
-              <InfoCard title="Pemasukan Lain" value={formatCurrency(metrics.totalPemasukanLain)} />
               <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
             </>
           ) : (
