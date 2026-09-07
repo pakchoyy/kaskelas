@@ -130,17 +130,17 @@ export function SettingsPage() {
               <p className="text-xs text-slate-500">Simpan & kirim backup bulanan biar aman kalau data keserang.</p>
             </div>
           </div>
-          <label className="mt-4 block space-y-2">
+          <div className="mt-4 space-y-2">
             <span className="text-sm font-medium text-slate-700">Email backup otomatis (opsional)</span>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input value={settings.backupEmail || ''} onChange={(e) => setSettings((c) => ({ ...c, backupEmail: e.target.value }))} placeholder="email@contoh.com" className="h-12 w-full rounded-2xl border border-slate-200 pl-10 pr-4 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" />
               </div>
-              <button type="button" onClick={handleSaveSettings} className="h-12 shrink-0 rounded-2xl bg-slate-900 px-4 text-sm font-semibold text-white">Simpan Email</button>
+              <button type="button" onClick={() => { setSettings((c) => ({ ...c })); setBackupMessage('Email backup tersimpan.'); setTimeout(() => setBackupMessage(''), 2000); }} className="h-12 shrink-0 rounded-2xl bg-slate-900 px-4 text-sm font-semibold text-white">Simpan Email</button>
             </div>
             <p className="text-xs text-slate-400">Tiap awal bulan otomatis dikirim ke email ini (jika diisi).</p>
-          </label>
+          </div>
           <button type="button" onClick={handleBackupNow} disabled={backupLoading} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white disabled:opacity-50">
             <Download className="h-5 w-5" strokeWidth={2} />{backupLoading ? 'Membuat backup...' : 'Backup Sekarang (Download JSON)'}
           </button>
