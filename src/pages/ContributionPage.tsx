@@ -861,8 +861,8 @@ export function ContributionPage() {
           )}
         </div>
 
-        {/* Filter Blok & Huruf - hanya untuk mode siswa */}
-        {mode === 'siswa' && (
+        {/* Filter Blok & Huruf - hanya kwaru + siswa */}
+        {mode === 'siswa' && isKwaruHost && (
           <div className="space-y-2">
             {/* Filter Blok - hanya untuk kwaru */}
             {isKwaruHost && (

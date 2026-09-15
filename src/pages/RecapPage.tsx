@@ -345,7 +345,7 @@ export function RecapPage() {
         )}
 
         {/* Filter Blok & Huruf - hanya kwaru + siswa */}
-        {mode === 'siswa' && (
+        {mode === 'siswa' && isKwaru && (
           <div className="space-y-2">
             {isKwaru && (
               <div className="flex gap-2">

@@ -1,0 +1,11 @@
+import fs from 'fs';
+import { Pool } from '@neondatabase/serverless';
+const sql = fs.readFileSync('database/012_scope_blok.sql','utf8');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+await pool.query(sql);
+console.log('Migration 012 applied');
+const r = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='students' AND column_name IN ('scope','blok')");
+console.log(r.rows);
+const r2 = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='finance_transactions' AND column_name='scope'");
+console.log(r2.rows);
+await pool.end();
