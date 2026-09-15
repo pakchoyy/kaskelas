@@ -67,7 +67,7 @@ export function StudentsPage() {
     const result = formMode === 'create' ? await addStudent(draftName, mode, blokVal) : activeStudentId ? await updateStudent(activeStudentId, draftName, blokVal) : false;
 
     if (!result) {
-      setErrorMessage(mode === 'guru' ? 'Nama guru tidak boleh kosong.' : 'Nama siswa tidak boleh kosong.');
+      setErrorMessage(mode === 'guru' ? (isKwaru ? 'Nama ibu-ibu tidak boleh kosong.' : 'Nama guru tidak boleh kosong.') : (isKwaru ? 'Nama jamaah tidak boleh kosong.' : 'Nama siswa tidak boleh kosong.'));
       return;
     }
 
@@ -102,7 +102,7 @@ export function StudentsPage() {
       const names = extractStudentNames(rows);
 
       if (names.length === 0) {
-        setImportMessage('Tidak ada nama ditemukan. Pastikan kolom nama terisi (mis. "Nama" atau "Nama Siswa").');
+        setImportMessage(`Tidak ada nama ditemukan. Pastikan kolom nama terisi (mis. "Nama" atau "${isKwaru ? 'Nama Jamaah' : 'Nama Siswa'}").`);
         return;
       }
 
@@ -119,7 +119,7 @@ export function StudentsPage() {
       }
 
       const failed = toAdd.length - success;
-      const parts = [`${success} siswa berhasil diimpor.`];
+      const parts = [isKwaru ? `${success} jamaah berhasil diimpor.` : `${success} siswa berhasil diimpor.`];
       if (skipped > 0) {
         parts.push(`${skipped} dilewati (sudah ada).`);
       }
@@ -178,7 +178,7 @@ export function StudentsPage() {
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
           {students.length === 0 ? (
-            <div className="p-4 text-sm text-slate-500">Belum ada siswa. Tap tombol tambah atau import dari Excel.</div>
+            <div className="p-4 text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah. Tap tombol tambah atau import dari Excel.' : 'Belum ada siswa. Tap tombol tambah atau import dari Excel.'}</div>
           ) : (
             <ul className="divide-y divide-slate-100">
               {students.map((student, index) => (
@@ -219,19 +219,19 @@ export function StudentsPage() {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700"
           >
             <Trash2 className="h-4 w-4" strokeWidth={2} />
-            Hapus Semua {mode === 'guru' ? 'Guru' : 'Siswa'}
+            Hapus Semua {mode === 'guru' ? (isKwaru ? 'Ibu-ibu' : 'Guru') : (isKwaru ? 'Jamaah' : 'Siswa')}
           </button>
         )}
 
         <BottomSheet
           open={sheetOpen}
-          title={formMode === 'create' ? (mode === 'guru' ? 'Tambah Guru' : 'Tambah Siswa') : (mode === 'guru' ? 'Edit Guru' : 'Edit Siswa')}
-          description={mode === 'guru' ? 'Masukkan nama guru.' : 'Masukkan nama siswa.'}
+          title={formMode === 'create' ? (mode === 'guru' ? (isKwaru ? 'Tambah Ibu-ibu' : 'Tambah Guru') : (isKwaru ? 'Tambah Jamaah' : 'Tambah Siswa')) : (mode === 'guru' ? (isKwaru ? 'Edit Ibu-ibu' : 'Edit Guru') : (isKwaru ? 'Edit Jamaah' : 'Edit Siswa'))}
+          description={mode === 'guru' ? (isKwaru ? 'Masukkan nama ibu-ibu.' : 'Masukkan nama guru.') : (isKwaru ? 'Masukkan nama jamaah.' : 'Masukkan nama siswa.')}
           onClose={closeSheet}
         >
           <div className="space-y-4">
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{mode === 'guru' ? 'Nama guru' : 'Nama siswa'}</span>
+              <span className="text-sm font-medium text-slate-700">{mode === 'guru' ? (isKwaru ? 'Nama ibu-ibu' : 'Nama guru') : (isKwaru ? 'Nama jamaah' : 'Nama siswa')}</span>
               <input
                 autoFocus
                 value={draftName}
@@ -277,7 +277,7 @@ export function StudentsPage() {
 
         <BottomSheet
           open={importOpen}
-          title="Import Siswa dari Excel"
+          title={isKwaru ? 'Import Jamaah dari Excel' : 'Import Siswa dari Excel'}
           description="Pilih file .xlsx atau .csv dengan kolom Nama."
           onClose={() => setImportOpen(false)}
         >
@@ -307,8 +307,8 @@ export function StudentsPage() {
 
         <ConfirmDialog
           open={deleteOpen}
-          title="Hapus siswa"
-          description={`Hapus ${activeStudent?.name ?? 'siswa ini'}? Data kas siswa ini juga akan terhapus.`}
+          title={isKwaru ? 'Hapus jamaah' : 'Hapus siswa'}
+          description={`Hapus ${activeStudent?.name ?? (isKwaru ? 'jamaah ini' : 'siswa ini')}? ${isKwaru ? 'Data sodaqoh jamaah ini juga akan terhapus.' : 'Data kas siswa ini juga akan terhapus.'}`}
           confirmLabel="Hapus"
           destructive
           onConfirm={handleDelete}
@@ -317,8 +317,8 @@ export function StudentsPage() {
 
         <ConfirmDialog
           open={deleteAllOpen}
-          title="Hapus semua siswa"
-          description={`Hapus semua ${students.length} siswa beserta data kasnya? Tindakan ini tidak bisa dibatalkan.`}
+          title={isKwaru ? 'Hapus semua jamaah' : 'Hapus semua siswa'}
+          description={`Hapus semua ${students.length} ${isKwaru ? 'jamaah beserta data sodaqohnya' : 'siswa beserta data kasnya'}? Tindakan ini tidak bisa dibatalkan.`}
           confirmLabel="Hapus Semua"
           destructive
           onConfirm={() => void handleDeleteAll()}

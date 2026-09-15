@@ -109,7 +109,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas'].includes(contributionType)) {
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas', 'triwulan_jamaah'].includes(contributionType)) {
     return sendError(res, 'Valid contribution type is required');
   }
   
@@ -182,6 +182,18 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     }
     if (typeof nominal !== 'number' || nominal <= 0) {
       return sendError(res, 'Ibu nominal must be positive');
+    }
+  }
+
+  if (contributionType === 'triwulan_jamaah') {
+    if (typeof periodMonth !== 'number' || periodMonth < 1 || periodMonth > 4) {
+      return sendError(res, 'Triwulan Jamaah requires period_month (1-4)');
+    }
+    if (typeof periodYear !== 'number' || periodYear < 2000) {
+      return sendError(res, 'Triwulan Jamaah requires period_year');
+    }
+    if (typeof nominal !== 'number' || nominal <= 0) {
+      return sendError(res, 'Triwulan Jamaah nominal must be positive');
     }
   }
   

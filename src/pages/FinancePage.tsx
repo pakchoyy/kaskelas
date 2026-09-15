@@ -7,6 +7,7 @@ import { useAppData } from '../hooks/useAppData';
 import { useAppMode } from '../hooks/useAppMode';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { extractFinanceRows, readExcelRows } from '../lib/excel';
+import { isKwaru } from '../lib/appScope';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate, todayIsoDate } from '../lib/date';
 
@@ -166,8 +167,8 @@ export function FinancePage() {
 
   return (
     <PageShell
-      title={mode === 'guru' ? 'Keuangan Guru' : 'Keuangan'}
-      description={mode === 'guru' ? 'Catat pemasukan dan pengeluaran guru.' : 'Catat pemasukan lain dan pengeluaran kelas.'}
+      title={mode === 'guru' ? (isKwaru ? 'Keuangan Ibu-ibu' : 'Keuangan Guru') : 'Keuangan'}
+      description={mode === 'guru' ? (isKwaru ? 'Catat pemasukan dan pengeluaran ibu-ibu.' : 'Catat pemasukan dan pengeluaran guru.') : 'Catat pemasukan lain dan pengeluaran kelas.'}
     >
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-4 shadow-soft">
@@ -332,7 +333,7 @@ export function FinancePage() {
                   <button type="button" onClick={() => setGuruKolektif(true)} className={`h-11 rounded-xl text-sm font-semibold ${guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Kolektif (÷9)</button>
                   <button type="button" onClick={() => setGuruKolektif(false)} className={`h-11 rounded-xl text-sm font-semibold ${!guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Pribadi</button>
                 </div>
-                {guruKolektif && <p className="text-xs text-slate-500">Kolektif: nominal akan dibagi rata per guru dan masuk Rekap Guru sebagai pengurang saldo.</p>}
+                {guruKolektif && <p className="text-xs text-slate-500">Kolektif: nominal akan dibagi rata {isKwaru ? 'per ibu-ibu' : 'per guru'} dan masuk {isKwaru ? 'Rekap Ibu-ibu' : 'Rekap Guru'} sebagai pengurang saldo.</p>}
               </label>
             </>
           )}

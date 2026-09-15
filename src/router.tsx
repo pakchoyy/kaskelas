@@ -15,6 +15,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'siswa', element: <StudentsPage /> },
+      { path: 'jamaah', element: <StudentsPage /> },
       { path: 'iuran', element: <ContributionPage /> },
       { path: 'keuangan', element: <FinancePage /> },
       { path: 'rekap', element: <RecapPage /> },

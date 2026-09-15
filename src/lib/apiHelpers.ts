@@ -1,6 +1,6 @@
 // Helper to map frontend contribution type format to API format
-export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' {
-  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas'> = {
+export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' {
+  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah'> = {
     'kas-kelas': 'kas_kelas',
     'amal-jumat': 'amal_jumat',
     'paguyuban-ngaji': 'paguyuban_ngaji',
@@ -10,6 +10,7 @@ export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_juma
     'tabungan-guru-tw': 'tabungan_guru_tw',
     'ibu-kompor': 'ibu_kompor',
     'ibu-kas': 'ibu_kas',
+    'triwulan-jamaah': 'triwulan_jamaah',
   };
   return mapping[type] || 'kas_kelas';
 }

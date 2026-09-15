@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, CheckCheck } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { isKwaru } from '../lib/appScope';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, isCashDay, todayIsoDate } from '../lib/date';
 
@@ -168,13 +169,13 @@ export function CashPage() {
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
           {students.length === 0 ? (
-            <div className="p-4 text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</div>
+            <div className="p-4 text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah. Tambah data jamaah dulu di menu Jamaah.' : 'Belum ada siswa. Tambah data siswa dulu di menu Siswa.'}</div>
           ) : (
             <table className="w-full table-fixed text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100">
                   <th rowSpan={2} className="w-[76px] px-2 py-2 font-medium text-slate-500">
-                    Siswa
+                    {isKwaru ? 'Jamaah' : 'Siswa'}
                   </th>
                   {weekDays.map((day) => (
                     <th key={day.key} className="w-[44px] px-1 py-2 text-center">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useAppMode } from '../hooks/useAppMode';
 import { usePwaInstall } from '../hooks/usePwaInstall';
+import { isKwaru } from '../lib/appScope';
 import { studentsApi, contributionsApi, financeApi } from '../services/api';
 
 export function SettingsPage() {
@@ -126,7 +127,7 @@ export function SettingsPage() {
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-700"><Shield className="h-5 w-5" strokeWidth={2} /></span>
             <div>
-              <p className="text-sm font-semibold text-slate-900">Backup Data ({mode === 'guru' ? 'Guru' : 'Siswa'})</p>
+              <p className="text-sm font-semibold text-slate-900">Backup Data ({mode === 'guru' ? (isKwaru ? 'Ibu-ibu' : 'Guru') : (isKwaru ? 'Jamaah' : 'Siswa')})</p>
               <p className="text-xs text-slate-500">Simpan & kirim backup bulanan biar aman kalau data keserang.</p>
             </div>
           </div>
@@ -145,7 +146,7 @@ export function SettingsPage() {
             <Download className="h-5 w-5" strokeWidth={2} />{backupLoading ? 'Membuat backup...' : 'Backup Sekarang (Download JSON)'}
           </button>
           {backupMessage && <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">{backupMessage}</p>}
-          <p className="mt-2 text-xs text-slate-400">File JSON berisi siswa/guru, iuran, dan keuangan sesuai mode {mode}.</p>
+          <p className="mt-2 text-xs text-slate-400">{isKwaru ? 'File JSON berisi jamaah/ibu-ibu, iuran, dan keuangan sesuai mode.' : `File JSON berisi siswa/guru, iuran, dan keuangan sesuai mode ${mode}.`}</p>
         </div>
 
         {canInstall || isStandalone ? (

@@ -7,7 +7,7 @@ export function BottomNavigation() {
   const { mode } = useAppMode();
   const items = [
     { to: '/dashboard', label: 'Dashboard', icon: Home },
-    { to: '/siswa', label: isKwaru ? (mode === 'guru' ? 'Ibu-ibu' : 'Jamaah') : (mode === 'guru' ? 'Guru' : 'Siswa'), icon: Users },
+    { to: isKwaru ? '/jamaah' : '/siswa', label: isKwaru ? (mode === 'guru' ? 'Ibu-ibu' : 'Jamaah') : (mode === 'guru' ? 'Guru' : 'Siswa'), icon: Users },
     { to: '/iuran', label: isKwaru ? 'Sodaqoh' : 'Iuran', icon: CheckCircle2 },
     { to: '/keuangan', label: 'Keuangan', icon: Wallet },
     { to: '/rekap', label: 'Rekap', icon: ClipboardList },

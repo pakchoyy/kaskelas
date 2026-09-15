@@ -5,6 +5,7 @@ import { BottomSheet } from '../components/BottomSheet';
 import { NominalStepper } from '../components/NominalStepper';
 import { useAppData } from '../hooks/useAppData';
 import { contributionsApi } from '../services/api';
+import { isKwaru } from '../lib/appScope';
 import { formatCurrency } from '../lib/format';
 import { todayIsoDate } from '../lib/date';
 
@@ -82,7 +83,7 @@ export function TabunganPage() {
   };
 
   return (
-    <PageShell title="Tabungan" description="Kelola tabungan siswa">
+    <PageShell title="Tabungan" description={isKwaru ? 'Kelola tabungan jamaah' : 'Kelola tabungan siswa'}>
       <div className="space-y-3">
         <div className="rounded-2xl bg-white p-4 shadow-soft">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Total Tabungan Kelas</p>
@@ -91,7 +92,7 @@ export function TabunganPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
           {students.length === 0 ? (
-            <div className="p-4 text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</div>
+            <div className="p-4 text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah. Tambah data jamaah dulu di menu Jamaah.' : 'Belum ada siswa. Tambah data siswa dulu di menu Siswa.'}</div>
           ) : (
             <ul className="divide-y divide-slate-100">
               {studentBalances.map(({ student, balance }, index) => (
@@ -134,7 +135,7 @@ export function TabunganPage() {
         <div className="space-y-4">
           {activeStudent && (
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Siswa</p>
+              <p className="text-xs text-slate-500">{isKwaru ? 'Jamaah' : 'Siswa'}</p>
               <p className="mt-0.5 text-sm font-semibold text-slate-900">{activeStudent.name}</p>
             </div>
           )}

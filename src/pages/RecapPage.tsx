@@ -225,7 +225,7 @@ export function RecapPage() {
 
   if (loading && !recap) {
     return (
-      <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+      <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
         <div className="flex items-center justify-center py-12">
           <p className="text-slate-500">Memuat data...</p>
         </div>
@@ -235,7 +235,7 @@ export function RecapPage() {
 
   if (error && !recap) {
     return (
-      <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+      <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -254,7 +254,7 @@ export function RecapPage() {
   }
 
   return (
-    <PageShell title="Rekap" description="Rekap kas per siswa dan total kas kelas">
+    <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
       <div className="grid gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -392,7 +392,7 @@ export function RecapPage() {
             className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
           >
             <span>
-              {kasView === 'per-siswa' ? 'Kas Baru' : 'Kas Akhir Siswa'}
+              {kasView === 'per-siswa' ? (isKwaru ? 'Sodaqoh Baru' : 'Kas Baru') : (isKwaru ? 'Saldo Akhir Jamaah' : 'Kas Akhir Siswa')}
             </span>
             <ChevronDown className="h-5 w-5 text-slate-400" strokeWidth={2} />
           </button>
@@ -409,7 +409,7 @@ export function RecapPage() {
                   kasView === 'per-siswa' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
                 }`}
               >
-                Kas Baru
+                {isKwaru ? 'Sodaqoh Baru' : 'Kas Baru'}
               </button>
               <button
                 type="button"
@@ -421,7 +421,7 @@ export function RecapPage() {
                   kasView === 'total-kas' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'
                 }`}
               >
-                Kas Akhir Siswa
+                {isKwaru ? 'Saldo Akhir Jamaah' : 'Kas Akhir Siswa'}
               </button>
             </div>
           )}
@@ -431,7 +431,7 @@ export function RecapPage() {
         {kasView === 'total-kas' && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h3 className="text-base font-semibold text-slate-900">Kas Akhir Siswa</h3>
+              <h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Saldo Akhir Jamaah' : 'Kas Akhir Siswa'}</h3>
               <button
                 type="button"
                 onClick={() => setKasDetailOpen(!kasDetailOpen)}
@@ -451,7 +451,7 @@ export function RecapPage() {
                   <th className="px-4 py-3 font-medium">Nama</th>
                   {kasDetailOpen && (
                     <>
-                      <th className="px-4 py-3 text-right font-medium">Kas Siswa</th>
+                      <th className="px-4 py-3 text-right font-medium">{isKwaru ? 'Sodaqoh' : 'Kas Siswa'}</th>
                       <th className="px-4 py-3 text-right font-medium">+ Pemasukan</th>
                       <th className="px-4 py-3 text-right font-medium">− Pengeluaran</th>
                     </>
@@ -492,7 +492,7 @@ export function RecapPage() {
               </tbody>
             </table>
             {filteredRecap.perStudent.length === 0 && (
-              <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+              <p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>
             )}
           </div>
         )}
@@ -500,10 +500,10 @@ export function RecapPage() {
         {contributionFilter === 'paguyuban-ngaji' && (
           <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="border-b border-slate-100 px-4 py-3">
-              <h3 className="text-base font-semibold text-slate-900">Lunas Per Siswa</h3>
+              <h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Lunas Per Jamaah' : 'Lunas Per Siswa'}</h3>
             </div>
             {filteredRecap.perStudent.length === 0 ? (
-              <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+              <p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -554,10 +554,10 @@ export function RecapPage() {
             {tabunganView === 'total' ? (
               <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
                 <div className="border-b border-slate-100 px-4 py-3">
-                  <h3 className="text-base font-semibold text-slate-900">Per Siswa — Total</h3>
+                  <h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Per Jamaah — Total' : 'Per Siswa — Total'}</h3>
                 </div>
                 {filteredRecap.perStudent.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
+                  <p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -626,8 +626,8 @@ export function RecapPage() {
               </div>
               {guruRecapView === 'total' ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
-                  <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Guru — Total</h3></div>
-                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data guru</p>) : (
+                  <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Per Ibu-ibu — Total' : 'Per Guru — Total'}</h3></div>
+                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data ibu-ibu' : 'Belum ada data guru'}</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 text-right font-medium">Total</th></tr></thead>
@@ -662,8 +662,8 @@ export function RecapPage() {
               </div>
               {kasBaruView === 'total' ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
-                  <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Siswa — Total</h3></div>
-                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
+                  <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Per Jamaah — Total' : 'Per Siswa — Total'}</h3></div>
+                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
@@ -692,8 +692,8 @@ export function RecapPage() {
             </>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
-              <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Siswa</h3></div>
-              {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
+              <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Per Jamaah' : 'Per Siswa'}</h3></div>
+              {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
