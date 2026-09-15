@@ -107,8 +107,8 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw'].includes(contributionType)) {
-    return sendError(res, 'Valid contribution type is required (kas_kelas, amal_jumat, paguyuban_ngaji, tabungan, lks, tabungan_guru_bulanan, tabungan_guru_tw)');
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas'].includes(contributionType)) {
+    return sendError(res, 'Valid contribution type is required');
   }
   
   if (!date || !isValidDate(date)) {
@@ -168,6 +168,18 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     }
     if (typeof nominal !== 'number' || nominal <= 0) {
       return sendError(res, 'Tabungan Guru TW nominal must be positive');
+    }
+  }
+
+  if (contributionType === 'ibu_kompor' || contributionType === 'ibu_kas') {
+    if (typeof periodMonth !== 'number' || periodMonth < 1 || periodMonth > 12) {
+      return sendError(res, 'Ibu requires period_month (1-12)');
+    }
+    if (typeof periodYear !== 'number' || periodYear < 2000) {
+      return sendError(res, 'Ibu requires period_year');
+    }
+    if (typeof nominal !== 'number' || nominal <= 0) {
+      return sendError(res, 'Ibu nominal must be positive');
     }
   }
   

@@ -1,6 +1,6 @@
 // Helper to map frontend contribution type format to API format
-export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' {
-  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw'> = {
+export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' {
+  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas'> = {
     'kas-kelas': 'kas_kelas',
     'amal-jumat': 'amal_jumat',
     'paguyuban-ngaji': 'paguyuban_ngaji',
@@ -8,6 +8,8 @@ export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_juma
     'lks': 'lks',
     'tabungan-guru-bulanan': 'tabungan_guru_bulanan',
     'tabungan-guru-tw': 'tabungan_guru_tw',
+    'ibu-kompor': 'ibu_kompor',
+    'ibu-kas': 'ibu_kas',
   };
   return mapping[type] || 'kas_kelas';
 }

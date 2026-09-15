@@ -15,7 +15,7 @@ import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
 
-type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw';
+type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas';
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
 type SemesterNumber = 1 | 2;
 
@@ -37,6 +37,11 @@ const contributionTypes = [
 const contributionTypesGuru = [
   { value: 'tabungan-guru-bulanan' as const, label: 'Tabungan Bulanan' },
   { value: 'tabungan-guru-tw' as const, label: 'Tabungan TW' },
+];
+
+const contributionTypesIbu = [
+  { value: 'ibu-kompor' as const, label: 'Kompor' },
+  { value: 'ibu-kas' as const, label: 'Kas' },
 ];
 
 const semesterOptions: Array<{ value: SemesterNumber; label: string }> = [
@@ -115,8 +120,9 @@ export function ContributionPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw'].includes(contributionType)) setContributionType('tabungan-guru-bulanan');
-    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw'].includes(contributionType)) setContributionType('kas-kelas');
+    const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
+    if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'ibu-kompor' : 'tabungan-guru-bulanan');
+    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType('kas-kelas');
   }, [mode]);
   
   // State untuk edit nominal Kas Kelas
@@ -312,6 +318,21 @@ export function ContributionPage() {
   }, [getLksPaidIds, lksNominal]);
 
   const lksPeriodKey = `${lksYear}-S${lksSemester}`;
+
+  // Ibu-ibu logic (Kompor & Kas, 5000 bulanan)
+  const ibuNominal = 5000;
+  const {
+    toggleStudent: toggleIbuKompor,
+    hasStudentPaid: hasIbuKomporPaid,
+    getPaidStudentIds: getIbuKomporIds,
+  } = useContributions('ibu-kompor' as any, { periodMonth: monthInfo.month + 1, periodYear: monthInfo.year });
+  const ibuKomporStats = useMemo(() => ({ paidCount: getIbuKomporIds().length, total: getIbuKomporIds().length * ibuNominal }), [getIbuKomporIds]);
+  const {
+    toggleStudent: toggleIbuKas,
+    hasStudentPaid: hasIbuKasPaid,
+    getPaidStudentIds: getIbuKasIds,
+  } = useContributions('ibu-kas' as any, { periodMonth: monthInfo.month + 1, periodYear: monthInfo.year });
+  const ibuKasStats = useMemo(() => ({ paidCount: getIbuKasIds().length, total: getIbuKasIds().length * ibuNominal }), [getIbuKasIds]);
 
   // Guru Tabungan logic
   const guruBulananNominal = 50000;
@@ -732,7 +753,7 @@ export function ContributionPage() {
         date.setDate(date.getDate() - 7);
         return toIsoLocalDate(date);
       });
-    } else if (contributionType === 'paguyuban-ngaji' || contributionType === 'tabungan-guru-bulanan') {
+    } else if (['paguyuban-ngaji','tabungan-guru-bulanan','ibu-kompor','ibu-kas'].includes(contributionType)) {
       setAnchorDate((prev) => {
         const date = new Date(`${prev}T00:00:00`);
         date.setMonth(date.getMonth() - 1);
@@ -760,7 +781,7 @@ export function ContributionPage() {
         date.setDate(date.getDate() + 7);
         return toIsoLocalDate(date);
       });
-    } else if (contributionType === 'paguyuban-ngaji' || contributionType === 'tabungan-guru-bulanan') {
+    } else if (['paguyuban-ngaji','tabungan-guru-bulanan','ibu-kompor','ibu-kas'].includes(contributionType)) {
       setAnchorDate((prev) => {
         const date = new Date(`${prev}T00:00:00`);
         date.setMonth(date.getMonth() + 1);
@@ -775,7 +796,8 @@ export function ContributionPage() {
     }
   };
 
-  const typesToShow = mode === 'guru' ? contributionTypesGuru : contributionTypes;
+  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
+  const typesToShow = mode === 'guru' ? (isKwaruHost ? contributionTypesIbu : contributionTypesGuru) : contributionTypes;
   const currentTypeLabel = typesToShow.find((t) => t.value === contributionType)?.label || '';
 
   return (
@@ -1340,6 +1362,56 @@ export function ContributionPage() {
               </div>
             </div>
             <button type="button" onClick={handleGuruTwSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
+            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
+          </>
+        )}
+
+        {/* MODE IBU KOMPOR */}
+        {contributionType === 'ibu-kompor' && (
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <h3 className="text-sm font-semibold text-slate-900">Kompor</h3>
+              <div className="mt-2 flex items-center justify-between">
+                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
+                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
+                <div className="space-y-2">{students.map((student, index) => {
+                  const isPaid = hasIbuKomporPaid(student.id);
+                  return (<button key={student.id} type="button" onClick={() => toggleIbuKompor(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
+                })}</div>
+              )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{ibuKomporStats.paidCount} ibu</p></div><div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(ibuKomporStats.total)}</p></div></div></div>
+            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
+          </>
+        )}
+
+        {/* MODE IBU KAS */}
+        {contributionType === 'ibu-kas' && (
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              <h3 className="text-sm font-semibold text-slate-900">Kas Ibu-ibu</h3>
+              <div className="mt-2 flex items-center justify-between">
+                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
+                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
+                <div className="space-y-2">{students.map((student, index) => {
+                  const isPaid = hasIbuKasPaid(student.id);
+                  return (<button key={student.id} type="button" onClick={() => toggleIbuKas(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
+                })}</div>
+              )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{ibuKasStats.paidCount} ibu</p></div><div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(ibuKasStats.total)}</p></div></div></div>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
