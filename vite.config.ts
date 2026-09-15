@@ -7,6 +7,7 @@ export default defineConfig({
     __BUILD_ID__: JSON.stringify(
       new Date().toISOString().replace(/[:.]/g, '-')
     ),
+    __APP_SCOPE__: JSON.stringify(process.env.APP_SCOPE || ''),
   },
   server: {
     proxy: {
@@ -22,9 +23,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['guru-cibisd2.png', 'apple-touch-icon.png', 'template-siswa.xlsx', 'template-keuangan.xlsx'],
       manifest: {
-        name: 'Bantu Guru Yuk - Kas Kelas',
-        short_name: 'Kas Kelas',
-        description: 'Aplikasi kas kelas untuk guru SD/SMP dengan sinkronisasi ke Google Spreadsheet.',
+        name: process.env.APP_SCOPE === 'kwaru' ? 'Rekap Sodaqoh Kelompok Waru' : 'Bantu Guru Yuk - Kas Kelas',
+        short_name: process.env.APP_SCOPE === 'kwaru' ? 'Sodaqoh Waru' : 'Kas Kelas',
+        description: process.env.APP_SCOPE === 'kwaru' ? 'Rekap sodaqoh Kelompok Waru - Triwulan & Pisangisasi' : 'Aplikasi kas kelas untuk guru SD/SMP dengan sinkronisasi ke Google Spreadsheet.',
         theme_color: '#0ea5a0',
         background_color: '#f8fafc',
         display: 'standalone',

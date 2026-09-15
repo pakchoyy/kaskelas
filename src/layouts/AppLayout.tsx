@@ -4,6 +4,7 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { InstallBanner } from '../components/InstallBanner';
 import { ReloadPrompt } from '../components/ReloadPrompt';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { isKwaru, appTitle } from '../lib/appScope';
 
 declare const __BUILD_ID__: string;
 
@@ -28,9 +29,7 @@ export function AppLayout() {
                     Bantu Guru Yuk
                   </p>
                   <h1 className="mt-1 truncate text-base font-semibold text-slate-900">
-                    {settings.className?.trim()
-                      ? `Kas Kelas ${settings.className.trim()} dan Tabungan Guru`
-                      : 'Kas Kelas dan Tabungan Guru'}
+                    {isKwaru ? 'Rekap Sodaqoh Kelompok Waru' : (settings.className?.trim() ? `Kas Kelas ${settings.className.trim()} dan Tabungan Guru` : 'Kas Kelas dan Tabungan Guru')}
                   </h1>
                   <p className="truncate text-xs text-slate-500">
                     {settings.schoolYear?.trim()

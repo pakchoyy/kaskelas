@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { Home, Users, CheckCircle2, Wallet, ClipboardList } from 'lucide-react';
 import { useAppMode } from '../hooks/useAppMode';
+import { isKwaru, navSiswaLabel, navGuruLabel, navIuranLabel } from '../lib/appScope';
 
 export function BottomNavigation() {
   const { mode } = useAppMode();
   const items = [
     { to: '/dashboard', label: 'Dashboard', icon: Home },
-    { to: '/siswa', label: mode === 'guru' ? 'Guru' : 'Siswa', icon: Users },
-    { to: '/iuran', label: 'Iuran', icon: CheckCircle2 },
+    { to: '/siswa', label: isKwaru ? (mode === 'guru' ? 'Ibu-ibu' : 'Jamaah') : (mode === 'guru' ? 'Guru' : 'Siswa'), icon: Users },
+    { to: '/iuran', label: isKwaru ? 'Sodaqoh' : 'Iuran', icon: CheckCircle2 },
     { to: '/keuangan', label: 'Keuangan', icon: Wallet },
     { to: '/rekap', label: 'Rekap', icon: ClipboardList },
   ];
