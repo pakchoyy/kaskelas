@@ -20,17 +20,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name: string;
       paidDays: string;
       total: string;
+      blok: string | null;
     }>(
       `SELECT 
         s.id,
         s.name,
         COALESCE(COUNT(c.id), 0)::text as "paidDays",
-        COALESCE(SUM(c.nominal), 0)::text as total
+        COALESCE(SUM(c.nominal), 0)::text as total,
+        s.blok
       FROM students s
       LEFT JOIN contributions c ON s.id = c.student_id 
         AND c.contribution_type = $1
       WHERE s.active = true AND s.category = $2 AND s.scope = $3
-      GROUP BY s.id, s.name
+      GROUP BY s.id, s.name, s.blok
       ORDER BY s.created_at`,
       [contributionType, categoryFilter, scope]
     );
@@ -42,6 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name: student.name,
       paidDays: parseInt(student.paidDays, 10),
       total: parseInt(student.total, 10),
+      blok: student.blok as 'etan' | 'kulon' | null,
     }));
     
     // Calculate totals

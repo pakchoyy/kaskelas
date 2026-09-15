@@ -6,6 +6,7 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { recapApi, contributionsApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { useAppMode } from '../hooks/useAppMode';
+import { isKwaru } from '../lib/appScope';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -67,6 +68,28 @@ export function RecapPage() {
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter blok & huruf untuk kwaru
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+
+  const filteredRecap = useMemo(() => {
+    if (!recap) return null;
+    let filtered = recap.perStudent;
+    if (isKwaru && blokFilter !== 'semua') {
+      filtered = filtered.filter((s) => s.blok === blokFilter);
+    }
+    if (hurufFilter !== 'semua') {
+      filtered = filtered.filter((s) => {
+        const first = s.name.charAt(0).toUpperCase();
+        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
+        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
+        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
+        return true;
+      });
+    }
+    return { ...recap, perStudent: filtered };
+  }, [recap, blokFilter, hurufFilter]);
 
   useEffect(() => {
     const loadRecap = async () => {
@@ -226,7 +249,7 @@ export function RecapPage() {
     );
   }
 
-  if (!recap) {
+  if (!recap || !filteredRecap) {
     return null;
   }
 
@@ -321,6 +344,46 @@ export function RecapPage() {
           </div>
         )}
 
+        {/* Filter Blok & Huruf - hanya kwaru + siswa */}
+        {mode === 'siswa' && (
+          <div className="space-y-2">
+            {isKwaru && (
+              <div className="flex gap-2">
+                {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setBlokFilter(b)}
+                    className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      blokFilter === b
+                        ? 'bg-brand-600 text-white'
+                        : 'border border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setHurufFilter(h)}
+                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    hurufFilter === h
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  {h === 'semua' ? 'Semua' : h === 'a-j' ? 'A-J' : h === 'k-t' ? 'K-T' : 'U-Z'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {contributionFilter === 'kas-kelas' && (
         <div className="relative">
           <button
@@ -398,13 +461,13 @@ export function RecapPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(() => {
-                  const n = recap.perStudent.length;
+                  const n = filteredRecap.perStudent.length;
                   const bagianPemasukan = n > 0 ? Math.round(recap.totalPemasukanLain / n) : 0;
                   const bagianPengeluaran = n > 0 ? Math.round(recap.totalPengeluaran / n) : 0;
                   const totalAkumulasi = bagianPemasukan - bagianPengeluaran;
                   return (
                     <>
-                      {recap.perStudent.map((student, index) => {
+                      {filteredRecap.perStudent.map((student, index) => {
                         const kasAkhir = student.total + totalAkumulasi;
                         return (
                           <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
@@ -428,7 +491,7 @@ export function RecapPage() {
                 })()}
               </tbody>
             </table>
-            {recap.perStudent.length === 0 && (
+            {filteredRecap.perStudent.length === 0 && (
               <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
             )}
           </div>
@@ -439,7 +502,7 @@ export function RecapPage() {
             <div className="border-b border-slate-100 px-4 py-3">
               <h3 className="text-base font-semibold text-slate-900">Lunas Per Siswa</h3>
             </div>
-            {recap.perStudent.length === 0 ? (
+            {filteredRecap.perStudent.length === 0 ? (
               <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
             ) : (
               <div className="overflow-x-auto">
@@ -452,7 +515,7 @@ export function RecapPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {recap.perStudent.map((student, index) => {
+                    {filteredRecap.perStudent.map((student, index) => {
                       const months = recap.paguyubanMonths.find((m) => m.id === student.id)?.months ?? [];
                       return (
                         <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
@@ -493,7 +556,7 @@ export function RecapPage() {
                 <div className="border-b border-slate-100 px-4 py-3">
                   <h3 className="text-base font-semibold text-slate-900">Per Siswa — Total</h3>
                 </div>
-                {recap.perStudent.length === 0 ? (
+                {filteredRecap.perStudent.length === 0 ? (
                   <p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -506,7 +569,7 @@ export function RecapPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {recap.perStudent.map((student, index) => (
+                        {filteredRecap.perStudent.map((student, index) => (
                           <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
                             <td className="px-4 py-3 text-slate-500">{student.number}</td>
                             <td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td>
@@ -564,11 +627,11 @@ export function RecapPage() {
               {guruRecapView === 'total' ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
                   <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Guru — Total</h3></div>
-                  {recap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data guru</p>) : (
+                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data guru</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 text-right font-medium">Total</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{recap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="truncate px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
+                        <tbody className="divide-y divide-slate-100">{filteredRecap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="truncate px-4 py-3 text-right font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
                       </table>
                     </div>
                   )}
@@ -600,11 +663,11 @@ export function RecapPage() {
               {kasBaruView === 'total' ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
                   <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Siswa — Total</h3></div>
-                  {recap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
+                  {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{recap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="px-4 py-3 text-slate-600">{student.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
+                        <tbody className="divide-y divide-slate-100">{filteredRecap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="px-4 py-3 text-slate-600">{student.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
                       </table>
                     </div>
                   )}
@@ -630,11 +693,11 @@ export function RecapPage() {
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
               <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">Per Siswa</h3></div>
-              {recap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
-                    <tbody className="divide-y divide-slate-100">{recap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="px-4 py-3 text-slate-600">{student.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
+              {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">Belum ada data siswa</p>) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">{filteredRecap.perStudent.map((student, index) => (<tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{student.number}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{student.name}</td><td className="px-4 py-3 text-slate-600">{student.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(student.total)}</td></tr>))}</tbody>
                   </table>
                 </div>
               )}

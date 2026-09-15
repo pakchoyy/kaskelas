@@ -119,6 +119,32 @@ export function ContributionPage() {
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
+  
+  // Filter blok (Etan/Kulon) - hanya untuk kwaru
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  // Filter huruf per 10 huruf (A-J, K-T, U-Z)
+  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+
+  const studentsFiltered = useMemo(() => {
+    let filtered = students;
+    // Filter blok hanya untuk kwaru
+    if (isKwaruHost && blokFilter !== 'semua') {
+      filtered = filtered.filter((s) => s.blok === blokFilter);
+    }
+    // Filter huruf
+    if (hurufFilter !== 'semua') {
+      filtered = filtered.filter((s) => {
+        const first = s.name.charAt(0).toUpperCase();
+        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
+        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
+        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
+        return true;
+      });
+    }
+    return filtered;
+  }, [students, blokFilter, hurufFilter, isKwaruHost]);
+
   useEffect(() => {
     const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
     if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'ibu-kompor' : 'tabungan-guru-bulanan');
@@ -166,7 +192,7 @@ export function ContributionPage() {
 
   const kasKelasCheckState = useMemo(() => {
     const state: Record<string, Record<WeekDayKey, boolean>> = {};
-    students.forEach((student) => {
+    studentsFiltered.forEach((student) => {
       const studentState: Record<WeekDayKey, boolean> = {} as Record<WeekDayKey, boolean>;
       weekDays.forEach((wd) => {
         const dateIso = weekDates[wd.key];
@@ -451,7 +477,7 @@ export function ContributionPage() {
     }
   };
   const handleGuruBulananSave = async () => {
-    for (const s of students) {
+    for (const s of studentsFiltered) {
       const raw = guruBulananNominals[s.id] || '';
       const nominal = parseInt(raw, 10) || 0;
       const existing = guruBulananRecords.find((c) => c.studentId === s.id);
@@ -463,7 +489,7 @@ export function ContributionPage() {
     await reload();
   };
   const handleGuruTwSave = async () => {
-    for (const s of students) {
+    for (const s of studentsFiltered) {
       const raw = guruTwNominals[s.id] || '';
       const nominal = parseInt(raw, 10) || 0;
       const existing = guruTwRecords.find((c) => c.studentId === s.id);
@@ -535,7 +561,7 @@ export function ContributionPage() {
     setAmalSaving(true);
     const failed: string[] = [];
     try {
-      for (const student of students) {
+      for (const student of studentsFiltered) {
         const raw = amalJumatNominals[student.id] || '';
         const nominal = parseInt(raw, 10) || 0;
         const existing = amalRecords.find((c) => c.studentId === student.id);
@@ -662,7 +688,7 @@ export function ContributionPage() {
   const handleTabunganSave = async () => {
     setTabunganSaving(true);
     try {
-      for (const student of students) {
+      for (const student of studentsFiltered) {
         const raw = tabunganNominals[student.id] || '';
         const nominal = parseInt(raw, 10) || 0;
         const existing = tabunganDayRecords.find((c) => c.studentId === student.id);
@@ -796,7 +822,6 @@ export function ContributionPage() {
     }
   };
 
-  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
   const typesToShow = mode === 'guru' ? (isKwaruHost ? contributionTypesIbu : contributionTypesGuru) : contributionTypes;
   const currentTypeLabel = typesToShow.find((t) => t.value === contributionType)?.label || '';
 
@@ -835,6 +860,48 @@ export function ContributionPage() {
             </div>
           )}
         </div>
+
+        {/* Filter Blok & Huruf - hanya untuk mode siswa */}
+        {mode === 'siswa' && (
+          <div className="space-y-2">
+            {/* Filter Blok - hanya untuk kwaru */}
+            {isKwaruHost && (
+              <div className="flex gap-2">
+                {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setBlokFilter(b)}
+                    className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      blokFilter === b
+                        ? 'bg-brand-600 text-white'
+                        : 'border border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Filter Huruf per 10 huruf */}
+            <div className="flex gap-2">
+              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setHurufFilter(h)}
+                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    hurufFilter === h
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  {h === 'semua' ? 'Semua' : h === 'a-j' ? 'A-J' : h === 'k-t' ? 'K-T' : 'U-Z'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* MODE KAS KELAS */}
         {contributionType === 'kas-kelas' && (
@@ -879,7 +946,7 @@ export function ContributionPage() {
                 </button>
               </div>
 
-              {students.length === 0 ? (
+              {studentsFiltered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <table className="w-full table-fixed text-sm">
@@ -894,7 +961,7 @@ export function ContributionPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map((student) => (
+                    {studentsFiltered.map((student) => (
                       <tr key={student.id} className="border-b border-slate-50 last:border-0">
                         <td className="px-2 py-2 text-xs font-medium text-slate-900">{student.name}</td>
                         {weekDays.map((wd) => {
@@ -985,11 +1052,11 @@ export function ContributionPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {amalLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
-              ) : students.length === 0 ? (
+              ) : studentsFiltered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => (
+                  {studentsFiltered.map((student, index) => (
                     <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                       <p className="text-sm font-medium text-slate-900">{student.name}</p>
                       <NominalStepper
@@ -1083,11 +1150,11 @@ export function ContributionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (
+              {studentsFiltered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
+                  {studentsFiltered.map((student, index) => {
                     const isPaid = hasPaguyubanPaid(student.id);
                     return (
                       <button
@@ -1212,11 +1279,11 @@ export function ContributionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (
+              {studentsFiltered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa terdaftar.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
+                  {studentsFiltered.map((student, index) => {
                     const isPaid = hasLksPaid(student.id);
                     return (
                       <button
@@ -1293,9 +1360,9 @@ export function ContributionPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {guruBulananLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+              {guruBulananLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
+                  {studentsFiltered.map((student, index) => {
                     const isPaid = hasGuruBulananPaid(student.id);
                     return (
                       <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
@@ -1338,9 +1405,9 @@ export function ContributionPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {guruTwLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
+              {guruTwLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
+                  {studentsFiltered.map((student, index) => {
                     const isPaid = hasGuruTwPaid(student.id);
                     return (
                       <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
@@ -1379,8 +1446,8 @@ export function ContributionPage() {
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
-                <div className="space-y-2">{students.map((student, index) => {
+              {studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
+                <div className="space-y-2">{studentsFiltered.map((student, index) => {
                   const isPaid = hasIbuKomporPaid(student.id);
                   return (<button key={student.id} type="button" onClick={() => toggleIbuKompor(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
                 })}</div>
@@ -1404,8 +1471,8 @@ export function ContributionPage() {
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {students.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
-                <div className="space-y-2">{students.map((student, index) => {
+              {studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
+                <div className="space-y-2">{studentsFiltered.map((student, index) => {
                   const isPaid = hasIbuKasPaid(student.id);
                   return (<button key={student.id} type="button" onClick={() => toggleIbuKas(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
                 })}</div>
@@ -1473,11 +1540,11 @@ export function ContributionPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {tabunganLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
-              ) : students.length === 0 ? (
+              ) : studentsFiltered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500">Belum ada siswa. Tambah data siswa dulu di menu Siswa.</p>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student, index) => {
+                  {studentsFiltered.map((student, index) => {
                     const balance = tabunganBalances.find((item) => item.student.id === student.id)?.balance ?? 0;
                     const hasNominal = !!(tabunganNominals[student.id] && parseInt(tabunganNominals[student.id], 10) > 0);
                     return (

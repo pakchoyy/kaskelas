@@ -99,6 +99,7 @@ export type RecapData = {
     name: string;
     paidDays: number;
     total: number;
+    blok?: 'etan' | 'kulon' | null;
   }>;
   paguyubanMonths: Array<{
     id: string;
