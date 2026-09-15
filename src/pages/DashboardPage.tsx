@@ -5,6 +5,7 @@ import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
 import { dashboardApi, type DashboardMetrics } from '../services/api';
 import { useAppMode } from '../hooks/useAppMode';
+import { isKwaru } from '../lib/appScope';
 
 export function DashboardPage() {
   const { mode, setMode } = useAppMode();
@@ -70,17 +71,17 @@ export function DashboardPage() {
   return (
     <PageShell
       title="Dashboard"
-      description="Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini."
+      description={isKwaru ? 'Ringkasan sodaqoh, transaksi terbaru, dan shortcut utama ada di sini.' : 'Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini.'}
     >
       <div className="grid gap-3">
         <div className="grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setMode('siswa')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'siswa' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
-            <p className={`text-xs font-semibold ${mode === 'siswa' ? 'text-brand-700' : 'text-slate-500'}`}>Siswa</p>
+            <p className={`text-xs font-semibold ${mode === 'siswa' ? 'text-brand-700' : 'text-slate-500'}`}>{isKwaru ? 'Jamaah' : 'Siswa'}</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">11</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>
           <button type="button" onClick={() => setMode('guru')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'guru' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
-            <p className={`text-xs font-semibold ${mode === 'guru' ? 'text-brand-700' : 'text-slate-500'}`}>Guru</p>
+            <p className={`text-xs font-semibold ${mode === 'guru' ? 'text-brand-700' : 'text-slate-500'}`}>{isKwaru ? 'Ibu-ibu' : 'Guru'}</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">9</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>

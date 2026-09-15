@@ -6,3 +6,5 @@ export const appTitle = isKwaru ? 'Rekap Sodaqoh Kelompok Waru' : 'Kas Kelas dan
 export const navSiswaLabel = isKwaru ? 'Jamaah' : 'Siswa';
 export const navGuruLabel = isKwaru ? 'Ibu-ibu' : 'Guru';
 export const navIuranLabel = isKwaru ? 'Sodaqoh' : 'Iuran';
+
+export const appScope: 'kwaru' | 'kaskelas' = isKwaru ? 'kwaru' : 'kaskelas';

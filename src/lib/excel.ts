@@ -77,6 +77,49 @@ export function extractStudentNames(rows: ExcelRow[]): string[] {
     .filter((name): name is string => name !== null);
 }
 
+export type ParsedStudentRow = {
+  name: string;
+  blok: 'etan' | 'kulon' | null;
+};
+
+export function parseStudentRowsWithBlok(rows: ExcelRow[]): ParsedStudentRow[] {
+  if (rows.length === 0) return [];
+  const keys = Object.keys(rows[0]);
+  const nameColumn =
+    ['nama', 'name', 'siswa', 'murid', 'panggilan', 'jamaah', 'jamaah', 'nama jamaah']
+      .map((keyword) => keys.find((k) => k.includes(keyword)))
+      .find(Boolean) || null;
+  const blokColumn =
+    ['blok', 'block', 'wilayah', 'daerah']
+      .map((keyword) => keys.find((k) => k.includes(keyword)))
+      .find(Boolean) || null;
+
+  return rows
+    .map((row) => {
+      let raw = nameColumn ? row[nameColumn] : '';
+      if (!raw) {
+        for (const value of Object.values(row)) {
+          if (typeof value === 'string' && value.trim() && !/^\d+$/.test(value.trim())) {
+            // skip if this value looks like a blok-only cell
+            const lv = value.trim().toLowerCase();
+            if (lv === 'etan' || lv === 'kulon' || lv.includes('blok')) continue;
+            raw = value;
+            break;
+          }
+        }
+      }
+      const name = (raw || '').trim();
+      if (!name || /^\d+$/.test(name)) return null;
+      const braw = String(blokColumn ? row[blokColumn] || '' : '').toLowerCase();
+      const blok: 'etan' | 'kulon' | null =
+        braw.includes('etan') || braw.includes('timur') ? 'etan'
+        : braw.includes('kulon') || braw.includes('barat') ? 'kulon'
+        : null;
+      return { name, blok };
+    })
+    .filter((r): r is ParsedStudentRow => r !== null);
+}
+
 export type ParsedFinanceRow = {
   date: string;
   type: 'Pengeluaran' | 'Pemasukan';

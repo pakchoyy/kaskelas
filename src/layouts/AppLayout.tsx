@@ -26,7 +26,7 @@ export function AppLayout() {
                 />
                 <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-[0.24em] text-brand-600">
-                    Bantu Guru Yuk
+                    {isKwaru ? 'E-Waru' : 'Bantu Guru Yuk'}
                   </p>
                   <h1 className="mt-1 truncate text-base font-semibold text-slate-900">
                     {isKwaru ? 'Rekap Sodaqoh Kelompok Waru' : (settings.className?.trim() ? `Kas Kelas ${settings.className.trim()} dan Tabungan Guru` : 'Kas Kelas dan Tabungan Guru')}

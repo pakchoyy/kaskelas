@@ -12,8 +12,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const contributionType = parseQueryParam(req.query.contribution_type) || 'kas_kelas';
     const isGuruType = contributionType === 'tabungan_guru_bulanan' || contributionType === 'tabungan_guru_tw';
     const categoryFilter = isGuruType ? 'guru' : 'siswa';
+    const scope = parseQueryParam(req.query.scope) || 'kaskelas';
     
-    // Get all active students with their payment stats (filter by kategori)
+    // Get all active students with their payment stats (filter by kategori + scope)
     const perStudent = await query<{
       id: string;
       name: string;
@@ -28,10 +29,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       FROM students s
       LEFT JOIN contributions c ON s.id = c.student_id 
         AND c.contribution_type = $1
-      WHERE s.active = true AND s.category = $2
+      WHERE s.active = true AND s.category = $2 AND s.scope = $3
       GROUP BY s.id, s.name
       ORDER BY s.created_at`,
-      [contributionType, categoryFilter]
+      [contributionType, categoryFilter, scope]
     );
     
     // Add row numbers
@@ -53,8 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `SELECT
         COALESCE(SUM(nominal) FILTER (WHERE type = 'pemasukan'), 0) as "totalPemasukan",
         COALESCE(SUM(nominal) FILTER (WHERE type = 'pengeluaran'), 0) as "totalPengeluaran"
-       FROM finance_transactions WHERE category = $1`,
-      [categoryFilter]
+       FROM finance_transactions WHERE category = $1 AND scope = $2`,
+      [categoryFilter, scope]
     );
     const totalPemasukanLain = parseInt(financeTotals?.totalPemasukan || '0', 10);
     const totalPengeluaran = parseInt(financeTotals?.totalPengeluaran || '0', 10);
@@ -64,10 +65,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalPenarikan: string | null;
     }>(
       `SELECT
-        COALESCE(SUM(nominal) FILTER (WHERE nominal > 0), 0) as "totalMasuk",
-        COALESCE(SUM(ABS(nominal)) FILTER (WHERE nominal < 0), 0) as "totalPenarikan"
-       FROM contributions
-       WHERE contribution_type = 'tabungan'`
+        COALESCE(SUM(c.nominal) FILTER (WHERE c.nominal > 0), 0) as "totalMasuk",
+        COALESCE(SUM(ABS(c.nominal)) FILTER (WHERE c.nominal < 0), 0) as "totalPenarikan"
+       FROM contributions c JOIN students s ON s.id = c.student_id
+       WHERE c.contribution_type = 'tabungan' AND s.scope = $1`,
+      [scope]
     );
     const totalTabunganMasuk = parseInt(tabunganTotals?.totalMasuk || '0', 10);
     const totalTabunganPenarikan = parseInt(tabunganTotals?.totalPenarikan || '0', 10);
@@ -76,10 +78,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Get latest cash date
     const latestDateResult = await queryOne<{ date: string | null }>(
-      `SELECT MAX(date)::text as date
-       FROM contributions
-       WHERE contribution_type = $1`,
-      [contributionType]
+      `SELECT MAX(c.date)::text as date
+       FROM contributions c JOIN students s ON s.id = c.student_id
+       WHERE c.contribution_type = $1 AND s.scope = $2`,
+      [contributionType, scope]
     );
     const latestCashDate = latestDateResult?.date || null;
 
@@ -100,10 +102,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         LEFT JOIN contributions c ON s.id = c.student_id 
           AND c.contribution_type = 'paguyuban_ngaji'
           AND c.period_year = $1
-        WHERE s.active = true AND s.category = 'siswa'
+        WHERE s.active = true AND s.category = 'siswa' AND s.scope = $2
         GROUP BY s.id, s.name
         ORDER BY s.created_at`,
-        [currentYear]
+        [currentYear, scope]
       );
       paguyubanMonths = monthRows.map((row) => ({
         id: row.id,

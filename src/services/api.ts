@@ -1,5 +1,6 @@
 // API Client for Kas Kelas Backend
 // Base URL configured for development/production
+import { appScope } from '../lib/appScope';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 
@@ -36,6 +37,8 @@ export type Student = {
   name: string;
   active: boolean;
   category: 'siswa' | 'guru';
+  scope?: string;
+  blok?: 'etan' | 'kulon' | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -143,21 +146,22 @@ export const studentsApi = {
     const params = new URLSearchParams();
     if (includeInactive) params.set('includeInactive', 'true');
     if (category) params.set('category', category);
+    params.set('scope', appScope);
     const query = params.toString() ? `?${params}` : '';
     return fetchApi<Student[]>(`/students${query}`);
   },
   
-  async create(name: string, category: 'siswa' | 'guru' = 'siswa'): Promise<Student> {
+  async create(name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | null): Promise<Student> {
     return fetchApi<Student>('/students', {
       method: 'POST',
-      body: JSON.stringify({ name, category }),
+      body: JSON.stringify({ name, category, scope: appScope, blok: blok ?? null }),
     });
   },
   
-  async update(id: string, name: string): Promise<Student> {
+  async update(id: string, name: string, blok?: 'etan' | 'kulon' | null): Promise<Student> {
     return fetchApi<Student>(`/students?id=${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(blok === undefined ? { name } : { name, blok }),
     });
   },
   
@@ -188,6 +192,7 @@ export const contributionsApi = {
     if (filters?.dateTo) params.set('date_to', filters.dateTo);
     if (filters?.periodMonth) params.set('period_month', filters.periodMonth.toString());
     if (filters?.periodYear) params.set('period_year', filters.periodYear.toString());
+    params.set('scope', appScope);
     
     const query = params.toString() ? `?${params}` : '';
     return fetchApi<Contribution[]>(`/contributions${query}`);
@@ -236,6 +241,7 @@ export const financeApi = {
     if (filters?.dateFrom) params.set('date_from', filters.dateFrom);
     if (filters?.dateTo) params.set('date_to', filters.dateTo);
     if (filters?.category) params.set('category', filters.category);
+    params.set('scope', appScope);
     
     const query = params.toString() ? `?${params}` : '';
     return fetchApi<FinanceTransaction[]>(`/finance${query}`);
@@ -250,7 +256,7 @@ export const financeApi = {
   }): Promise<FinanceTransaction> {
     return fetchApi<FinanceTransaction>('/finance', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, scope: appScope }),
     });
   },
   
@@ -344,13 +350,13 @@ export const amalJumatApi = {
 // Dashboard API
 export const dashboardApi = {
   async getMetrics(category: 'siswa' | 'guru' = 'siswa'): Promise<DashboardMetrics> {
-    return fetchApi<DashboardMetrics>(`/dashboard?category=${category}`);
+    return fetchApi<DashboardMetrics>(`/dashboard?category=${category}&scope=${appScope}`);
   },
 };
 
 // Recap API
 export const recapApi = {
   async getData(contributionType: ContributionType = 'kas_kelas'): Promise<RecapData> {
-    return fetchApi<RecapData>(`/recap?contribution_type=${contributionType}`);
+    return fetchApi<RecapData>(`/recap?contribution_type=${contributionType}&scope=${appScope}`);
   },
 };

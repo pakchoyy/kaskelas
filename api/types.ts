@@ -4,6 +4,8 @@ export type Student = {
   name: string;
   active: boolean;
   category: 'siswa' | 'guru';
+  scope: string;
+  blok: 'etan' | 'kulon' | null;
   createdAt: string;
   updatedAt: string;
 };

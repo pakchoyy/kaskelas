@@ -28,6 +28,7 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
   const dateFrom = parseQueryParam(req.query.date_from);
   const dateTo = parseQueryParam(req.query.date_to);
   const category = parseQueryParam(req.query.category) as 'siswa' | 'guru' | undefined;
+  const scope = parseQueryParam(req.query.scope) || 'kaskelas';
   
   let sql = `
     SELECT 
@@ -40,11 +41,11 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
       created_at as "createdAt", 
       updated_at as "updatedAt"
     FROM finance_transactions
-    WHERE 1=1
+    WHERE scope = $1
   `;
   
-  const params: any[] = [];
-  let paramIndex = 1;
+  const params: any[] = [scope];
+  let paramIndex = 2;
   
   if (type && ['pemasukan', 'pengeluaran'].includes(type)) {
     sql += ` AND type = $${paramIndex}`;
@@ -77,7 +78,7 @@ async function handleGetFinance(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
-  const { type, date, nominal, note, category } = req.body;
+  const { type, date, nominal, note, category, scope } = req.body;
   
   // Validation
   if (!type || !['pemasukan', 'pengeluaran'].includes(type)) {
@@ -96,13 +97,14 @@ async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
     return sendError(res, 'Note is required and cannot be empty');
   }
   const cat = category === 'guru' ? 'guru' : 'siswa';
+  const sc = scope === 'kwaru' ? 'kwaru' : 'kaskelas';
   
   const id = createId('finance');
   const now = new Date().toISOString();
   
   const transaction = await queryOne<FinanceTransaction>(
-    `INSERT INTO finance_transactions (id, type, date, nominal, note, category, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO finance_transactions (id, type, date, nominal, note, category, scope, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING 
        id, 
        type, 
@@ -112,7 +114,7 @@ async function handleCreateFinance(req: VercelRequest, res: VercelResponse) {
        category,
        created_at as "createdAt", 
        updated_at as "updatedAt"`,
-    [id, type, date, nominal, note.trim(), cat, now, now]
+    [id, type, date, nominal, note.trim(), cat, sc, now, now]
   );
   
   sendSuccess(res, transaction, 'Finance transaction created successfully');

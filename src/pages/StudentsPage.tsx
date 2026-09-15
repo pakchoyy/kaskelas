@@ -5,7 +5,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
 import { useAppData } from '../hooks/useAppData';
 import { useAppMode } from '../hooks/useAppMode';
-import { extractStudentNames, readExcelRows } from '../lib/excel';
+import { isKwaru } from '../lib/appScope';
+import { extractStudentNames, parseStudentRowsWithBlok, readExcelRows } from '../lib/excel';
 
 type StudentFormMode = 'create' | 'edit';
 
@@ -18,6 +19,7 @@ export function StudentsPage() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [formMode, setFormMode] = useState<StudentFormMode>('create');
   const [draftName, setDraftName] = useState('');
+  const [draftBlok, setDraftBlok] = useState<'etan' | 'kulon' | ''>('');
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
@@ -33,6 +35,7 @@ export function StudentsPage() {
   const openCreateSheet = () => {
     setFormMode('create');
     setDraftName('');
+    setDraftBlok('');
     setErrorMessage('');
     setSheetOpen(true);
   };
@@ -46,6 +49,7 @@ export function StudentsPage() {
     setActiveStudentId(studentId);
     setFormMode('edit');
     setDraftName(student.name);
+    setDraftBlok(student.blok === 'etan' || student.blok === 'kulon' ? student.blok : '');
     setErrorMessage('');
     setSheetOpen(true);
   };
@@ -53,12 +57,14 @@ export function StudentsPage() {
   const closeSheet = () => {
     setSheetOpen(false);
     setDraftName('');
+    setDraftBlok('');
     setErrorMessage('');
     setActiveStudentId(null);
   };
 
   const handleSave = async () => {
-    const result = formMode === 'create' ? await addStudent(draftName, mode) : activeStudentId ? await updateStudent(activeStudentId, draftName) : false;
+    const blokVal = isKwaru ? (draftBlok === '' ? null : draftBlok) : undefined;
+    const result = formMode === 'create' ? await addStudent(draftName, mode, blokVal) : activeStudentId ? await updateStudent(activeStudentId, draftName, blokVal) : false;
 
     if (!result) {
       setErrorMessage(mode === 'guru' ? 'Nama guru tidak boleh kosong.' : 'Nama siswa tidak boleh kosong.');
@@ -128,12 +134,16 @@ export function StudentsPage() {
     }
   };
 
+  const pageTitle = isKwaru ? (mode === 'guru' ? 'Ibu-ibu' : 'Jamaah') : (mode === 'guru' ? 'Guru' : 'Siswa');
+  const pageDesc = isKwaru ? (mode === 'guru' ? 'Kelola ibu-ibu kelompok waru.' : 'Kelola jamaah kelompok waru.') : (mode === 'guru' ? 'Kelola daftar guru.' : 'Kelola daftar siswa kelas.');
+  const totalLabel = isKwaru ? (mode === 'guru' ? 'Total ibu-ibu' : 'Total jamaah') : (mode === 'guru' ? 'Total guru' : 'Total siswa');
+
   return (
-    <PageShell title={mode === 'guru' ? 'Guru' : 'Siswa'} description={mode === 'guru' ? 'Kelola daftar guru.' : 'Kelola daftar siswa kelas.'}>
+    <PageShell title={pageTitle} description={pageDesc}>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{mode === 'guru' ? 'Total guru' : 'Total siswa'}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{totalLabel}</p>
             <p className="mt-1 text-2xl font-semibold text-slate-900">{students.length}</p>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -230,6 +240,28 @@ export function StudentsPage() {
                 className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none ring-brand-200 focus:border-brand-500 focus:ring-4"
               />
             </label>
+
+            {isKwaru && (
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Blok</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDraftBlok('etan')}
+                    className={`h-11 rounded-xl text-sm font-semibold transition ${draftBlok === 'etan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+                  >
+                    Blok Etan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftBlok('kulon')}
+                    className={`h-11 rounded-xl text-sm font-semibold transition ${draftBlok === 'kulon' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+                  >
+                    Blok Kulon
+                  </button>
+                </div>
+              </div>
+            )}
 
             {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
 

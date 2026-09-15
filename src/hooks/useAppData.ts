@@ -100,14 +100,14 @@ export function useAppData() {
   }, [loadData]);
 
   // Student operations
-  const addStudent = useCallback(async (name: string, category: 'siswa' | 'guru' = 'siswa'): Promise<boolean> => {
+  const addStudent = useCallback(async (name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | null): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return false;
     }
 
     try {
-      const newStudent = await studentsApi.create(trimmedName, category);
+      const newStudent = await studentsApi.create(trimmedName, category, blok ?? null);
       setStudents(current => [...current, newStudent]);
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);
       return true;
@@ -118,14 +118,14 @@ export function useAppData() {
     }
   }, []);
 
-  const updateStudent = useCallback(async (studentId: string, name: string): Promise<boolean> => {
+  const updateStudent = useCallback(async (studentId: string, name: string, blok?: 'etan' | 'kulon' | null): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return false;
     }
 
     try {
-      const updated = await studentsApi.update(studentId, trimmedName);
+      const updated = await studentsApi.update(studentId, trimmedName, blok);
       setStudents(current =>
         current.map(s => (s.id === studentId ? updated : s))
       );

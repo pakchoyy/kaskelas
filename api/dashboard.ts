@@ -10,8 +10,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const category = parseQueryParam(req.query.category) as 'siswa' | 'guru' | undefined;
     const cat = category === 'guru' ? 'guru' : 'siswa';
+    const scope = parseQueryParam(req.query.scope) || 'kaskelas';
     
-    // Single query with CTE to get all metrics at once (filter by kategori)
+    // Single query with CTE to get all metrics at once (filter by kategori + scope)
     const metricsResult = await queryOne<{
       totalStudents: string;
       totalKasMasuk: string;
@@ -23,13 +24,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }>(
       `WITH metrics AS (
         SELECT
-          (SELECT COUNT(*) FROM students WHERE active = true AND category = $1) as total_students,
-          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'kas_kelas' AND s.active = true AND s.category = $1) as total_kas,
-          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type IN ('tabungan','tabungan_guru_bulanan','tabungan_guru_tw') AND s.active = true AND s.category = $1) as total_tabungan,
-          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_bulanan' AND s.active = true AND s.category = 'guru') as total_guru_bulanan,
-          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_tw' AND s.active = true AND s.category = 'guru') as total_guru_tw,
-          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pemasukan' AND category = $1) as total_pemasukan,
-          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pengeluaran' AND category = $1) as total_pengeluaran
+          (SELECT COUNT(*) FROM students WHERE active = true AND category = $1 AND scope = $2) as total_students,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'kas_kelas' AND s.active = true AND s.category = $1 AND s.scope = $2) as total_kas,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type IN ('tabungan','tabungan_guru_bulanan','tabungan_guru_tw') AND s.active = true AND s.category = $1 AND s.scope = $2) as total_tabungan,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_bulanan' AND s.active = true AND s.category = 'guru' AND s.scope = $2) as total_guru_bulanan,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_tw' AND s.active = true AND s.category = 'guru' AND s.scope = $2) as total_guru_tw,
+          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pemasukan' AND category = $1 AND scope = $2) as total_pemasukan,
+          (SELECT COALESCE(SUM(nominal), 0) FROM finance_transactions WHERE type = 'pengeluaran' AND category = $1 AND scope = $2) as total_pengeluaran
        )
        SELECT 
         total_students::text as "totalStudents",
@@ -40,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         total_pemasukan::text as "totalPemasukanLain",
         total_pengeluaran::text as "totalPengeluaran"
        FROM metrics`,
-      [cat]
+      [cat, scope]
     );
     
     const totalStudents = parseInt(metricsResult?.totalStudents || '0', 10);
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           NULL as note,
           SUM(c.nominal)::text as amount
         FROM contributions c JOIN students s ON s.id = c.student_id
-        WHERE c.contribution_type = 'kas_kelas' AND s.category = $1
+        WHERE c.contribution_type = 'kas_kelas' AND s.category = $1 AND s.scope = $2
         GROUP BY c.date
         ORDER BY c.date DESC
         LIMIT 5
@@ -85,13 +86,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           note,
           nominal::text as amount
         FROM finance_transactions
-        WHERE category = $1
+        WHERE category = $1 AND scope = $2
         ORDER BY date DESC, created_at DESC
         LIMIT 5
       )
       ORDER BY date DESC
       LIMIT 5`,
-      [cat]
+      [cat, scope]
     );
     
     const recentTransactions = recentTransactionsResult.map(row => ({

@@ -31,69 +31,71 @@ async function handleGetContributions(req: VercelRequest, res: VercelResponse) {
   const date = parseQueryParam(req.query.date);
   const periodMonth = parseQueryParamInt(req.query.period_month);
   const periodYear = parseQueryParamInt(req.query.period_year);
+  const scope = parseQueryParam(req.query.scope) || 'kaskelas';
   
   let sql = `
     SELECT 
-      id, 
-      student_id as "studentId", 
-      contribution_type as "contributionType", 
-      date::text as date, 
-      nominal, 
-      period_month as "periodMonth", 
-      period_year as "periodYear", 
-      note,
-      created_at as "createdAt", 
-      updated_at as "updatedAt"
-    FROM contributions
+      c.id, 
+      c.student_id as "studentId", 
+      c.contribution_type as "contributionType", 
+      c.date::text as date, 
+      c.nominal, 
+      c.period_month as "periodMonth", 
+      c.period_year as "periodYear", 
+      c.note,
+      c.created_at as "createdAt", 
+      c.updated_at as "updatedAt"
+    FROM contributions c
+    JOIN students s ON s.id = c.student_id AND s.scope = $1
     WHERE 1=1
   `;
   
-  const params: any[] = [];
-  let paramIndex = 1;
+  const params: any[] = [scope];
+  let paramIndex = 2;
   
   if (contributionType) {
-    sql += ` AND contribution_type = $${paramIndex}`;
+    sql += ` AND c.contribution_type = $${paramIndex}`;
     params.push(contributionType);
     paramIndex++;
   }
   
   if (studentId) {
-    sql += ` AND student_id = $${paramIndex}`;
+    sql += ` AND c.student_id = $${paramIndex}`;
     params.push(studentId);
     paramIndex++;
   }
   
   if (date) {
-    sql += ` AND date = $${paramIndex}`;
+    sql += ` AND c.date = $${paramIndex}`;
     params.push(date);
     paramIndex++;
   } else {
     if (dateFrom) {
-      sql += ` AND date >= $${paramIndex}`;
+      sql += ` AND c.date >= $${paramIndex}`;
       params.push(dateFrom);
       paramIndex++;
     }
     
     if (dateTo) {
-      sql += ` AND date <= $${paramIndex}`;
+      sql += ` AND c.date <= $${paramIndex}`;
       params.push(dateTo);
       paramIndex++;
     }
   }
   
   if (periodMonth !== undefined) {
-    sql += ` AND period_month = $${paramIndex}`;
+    sql += ` AND c.period_month = $${paramIndex}`;
     params.push(periodMonth);
     paramIndex++;
   }
   
   if (periodYear !== undefined) {
-    sql += ` AND period_year = $${paramIndex}`;
+    sql += ` AND c.period_year = $${paramIndex}`;
     params.push(periodYear);
     paramIndex++;
   }
   
-  sql += ' ORDER BY date DESC, created_at DESC';
+  sql += ' ORDER BY c.date DESC, c.created_at DESC';
   
   const contributions = await query<Contribution>(sql, params);
   sendSuccess(res, contributions);
