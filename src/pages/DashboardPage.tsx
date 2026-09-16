@@ -10,6 +10,7 @@ import { isKwaru } from '../lib/appScope';
 export function DashboardPage() {
   const { mode, setMode } = useAppMode();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metricsGuru, setMetricsGuru] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,8 +19,12 @@ export function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await dashboardApi.getMetrics(mode);
-        setMetrics(data);
+        const [siswaData, guruData] = await Promise.all([
+          dashboardApi.getMetrics('siswa'),
+          dashboardApi.getMetrics('guru'),
+        ]);
+        setMetrics(mode === 'guru' ? guruData : siswaData);
+        setMetricsGuru(guruData);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load dashboard';
         setError(message);
@@ -36,7 +41,7 @@ export function DashboardPage() {
     return (
       <PageShell
         title="Dashboard"
-        description="Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini."
+        description={isKwaru ? 'Ringkasan sodaqoh, transaksi terbaru, dan shortcut utama ada di sini.' : 'Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini.'}
       >
         <div className="flex items-center justify-center py-12">
           <p className="text-slate-500">Memuat data...</p>
@@ -49,7 +54,7 @@ export function DashboardPage() {
     return (
       <PageShell
         title="Dashboard"
-        description="Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini."
+        description={isKwaru ? 'Ringkasan sodaqoh, transaksi terbaru, dan shortcut utama ada di sini.' : 'Ringkasan kas kelas, transaksi terbaru, dan shortcut utama ada di sini.'}
       >
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
@@ -77,12 +82,12 @@ export function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setMode('siswa')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'siswa' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
             <p className={`text-xs font-semibold ${mode === 'siswa' ? 'text-brand-700' : 'text-slate-500'}`}>{isKwaru ? 'Jamaah' : 'Siswa'}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">11</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.totalStudents}</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>
           <button type="button" onClick={() => setMode('guru')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'guru' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
             <p className={`text-xs font-semibold ${mode === 'guru' ? 'text-brand-700' : 'text-slate-500'}`}>{isKwaru ? 'Ibu-ibu' : 'Guru'}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">9</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{metricsGuru?.totalStudents ?? 0}</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>
         </div>

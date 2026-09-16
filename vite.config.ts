@@ -21,7 +21,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['guru-cibisd2.png', 'apple-touch-icon.png', 'template-siswa.xlsx', 'template-keuangan.xlsx'],
+      includeAssets: ['guru-cibisd2.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'template-siswa.xlsx', 'template-keuangan.xlsx'],
       manifest: {
         name: process.env.APP_SCOPE === 'kwaru' ? 'Rekap Sodaqoh Kelompok Waru' : 'Bantu Guru Yuk - Kas Kelas',
         short_name: process.env.APP_SCOPE === 'kwaru' ? 'Sodaqoh Waru' : 'Kas Kelas',
