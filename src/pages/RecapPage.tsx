@@ -70,7 +70,7 @@ export function RecapPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filter blok & huruf untuk kwaru
-  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
 
   const filteredRecap = useMemo(() => {
@@ -361,7 +361,7 @@ export function RecapPage() {
           <div className="space-y-2">
             {isKwaru && (
               <div className="flex gap-2">
-                {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                {(['semua', 'etan', 'kulon', 'lainnya'] as const).map((b) => (
                   <button
                     key={b}
                     type="button"
@@ -372,7 +372,7 @@ export function RecapPage() {
                         : 'border border-slate-200 bg-white text-slate-700'
                     }`}
                   >
-                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : b === 'kulon' ? 'Kulon' : 'Lainnya'}
                   </button>
                 ))}
               </div>

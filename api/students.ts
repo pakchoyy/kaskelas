@@ -51,7 +51,7 @@ async function handleCreateStudent(req: VercelRequest, res: VercelResponse) {
   }
   const cat = category === 'guru' ? 'guru' : 'siswa';
   const sc = scope === 'kwaru' ? 'kwaru' : 'kaskelas';
-  const bl = blok === 'etan' || blok === 'kulon' ? blok : null;
+  const bl = blok === 'etan' || blok === 'kulon' || blok === 'lainnya' ? blok : null;
   
   const id = createId('student');
   const now = new Date().toISOString();
@@ -79,7 +79,7 @@ async function handleUpdateStudent(req: VercelRequest, res: VercelResponse) {
   }
   
   const now = new Date().toISOString();
-  const bl = blok === 'etan' || blok === 'kulon' ? blok : (blok === null ? null : undefined);
+  const bl = blok === 'etan' || blok === 'kulon' || blok === 'lainnya' ? blok : (blok === null ? null : undefined);
   
   let student;
   if (bl === undefined) {

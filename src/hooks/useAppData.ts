@@ -100,7 +100,7 @@ export function useAppData() {
   }, [loadData]);
 
   // Student operations
-  const addStudent = useCallback(async (name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | null): Promise<boolean> => {
+  const addStudent = useCallback(async (name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | 'lainnya' | null): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return false;
@@ -118,7 +118,7 @@ export function useAppData() {
     }
   }, []);
 
-  const updateStudent = useCallback(async (studentId: string, name: string, blok?: 'etan' | 'kulon' | null): Promise<boolean> => {
+  const updateStudent = useCallback(async (studentId: string, name: string, blok?: 'etan' | 'kulon' | 'lainnya' | null): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return false;

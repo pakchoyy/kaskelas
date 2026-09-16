@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name: student.name,
       paidDays: parseInt(student.paidDays, 10),
       total: parseInt(student.total, 10),
-      blok: student.blok as 'etan' | 'kulon' | null,
+      blok: student.blok as 'etan' | 'kulon' | 'lainnya' | null,
     }));
     
     // Calculate totals

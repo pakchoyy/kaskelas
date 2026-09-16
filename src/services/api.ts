@@ -38,7 +38,7 @@ export type Student = {
   active: boolean;
   category: 'siswa' | 'guru';
   scope?: string;
-  blok?: 'etan' | 'kulon' | null;
+  blok?: 'etan' | 'kulon' | 'lainnya' | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -99,7 +99,7 @@ export type RecapData = {
     name: string;
     paidDays: number;
     total: number;
-    blok?: 'etan' | 'kulon' | null;
+    blok?: 'etan' | 'kulon' | 'lainnya' | null;
   }>;
   paguyubanMonths: Array<{
     id: string;
@@ -152,14 +152,14 @@ export const studentsApi = {
     return fetchApi<Student[]>(`/students${query}`);
   },
   
-  async create(name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | null): Promise<Student> {
+  async create(name: string, category: 'siswa' | 'guru' = 'siswa', blok?: 'etan' | 'kulon' | 'lainnya' | null): Promise<Student> {
     return fetchApi<Student>('/students', {
       method: 'POST',
       body: JSON.stringify({ name, category, scope: appScope, blok: blok ?? null }),
     });
   },
   
-  async update(id: string, name: string, blok?: 'etan' | 'kulon' | null): Promise<Student> {
+  async update(id: string, name: string, blok?: 'etan' | 'kulon' | 'lainnya' | null): Promise<Student> {
     return fetchApi<Student>(`/students?id=${id}`, {
       method: 'PATCH',
       body: JSON.stringify(blok === undefined ? { name } : { name, blok }),

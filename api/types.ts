@@ -5,7 +5,7 @@ export type Student = {
   active: boolean;
   category: 'siswa' | 'guru';
   scope: string;
-  blok: 'etan' | 'kulon' | null;
+  blok: 'etan' | 'kulon' | 'lainnya' | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -98,7 +98,7 @@ export type RecapData = {
     name: string;
     paidDays: number;
     total: number;
-    blok: 'etan' | 'kulon' | null;
+    blok: 'etan' | 'kulon' | 'lainnya' | null;
   }>;
   paguyubanMonths: Array<{
     id: string;

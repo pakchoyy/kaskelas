@@ -19,7 +19,7 @@ export function StudentsPage() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [formMode, setFormMode] = useState<StudentFormMode>('create');
   const [draftName, setDraftName] = useState('');
-  const [draftBlok, setDraftBlok] = useState<'etan' | 'kulon' | ''>('');
+  const [draftBlok, setDraftBlok] = useState<'etan' | 'kulon' | 'lainnya' | ''>('');
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
@@ -28,7 +28,7 @@ export function StudentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter blok & huruf untuk kwaru
-  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
   const [blokFilterOpen, setBlokFilterOpen] = useState(false);
 
@@ -210,19 +210,19 @@ export function StudentsPage() {
                 onClick={() => setBlokFilterOpen(!blokFilterOpen)}
                 className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
               >
-                {blokFilter === 'semua' ? 'Semua Blok' : blokFilter === 'etan' ? 'Etan' : 'Kulon'}
+                {blokFilter === 'semua' ? 'Semua Blok' : blokFilter === 'etan' ? 'Etan' : blokFilter === 'kulon' ? 'Kulon' : 'Lainnya'}
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
               {blokFilterOpen && (
                 <div className="absolute left-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                  {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                  {(['semua', 'etan', 'kulon', 'lainnya'] as const).map((b) => (
                     <button
                       key={b}
                       type="button"
                       onClick={() => { setBlokFilter(b); setBlokFilterOpen(false); }}
                       className={`block w-full px-4 py-2.5 text-left text-sm ${blokFilter === b ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}
                     >
-                      {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                      {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : b === 'kulon' ? 'Kulon' : 'Lainnya'}
                     </button>
                   ))}
                 </div>
@@ -313,20 +313,27 @@ export function StudentsPage() {
             {isKwaru && (
               <div className="space-y-2">
                 <span className="text-sm font-medium text-slate-700">Blok</span>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setDraftBlok('etan')}
                     className={`h-11 rounded-xl text-sm font-semibold transition ${draftBlok === 'etan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
                   >
-                    Blok Etan
+                    Etan
                   </button>
                   <button
                     type="button"
                     onClick={() => setDraftBlok('kulon')}
                     className={`h-11 rounded-xl text-sm font-semibold transition ${draftBlok === 'kulon' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
                   >
-                    Blok Kulon
+                    Kulon
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftBlok('lainnya')}
+                    className={`h-11 rounded-xl text-sm font-semibold transition ${draftBlok === 'lainnya' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+                  >
+                    Lainnya
                   </button>
                 </div>
               </div>

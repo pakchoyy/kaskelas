@@ -132,7 +132,7 @@ export function ContributionPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Filter blok (Etan/Kulon) - hanya untuk kwaru
-  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   // Filter huruf per 10 huruf (A-J, K-T, U-Z)
   const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
 
@@ -963,7 +963,7 @@ export function ContributionPage() {
             {/* Filter Blok - hanya untuk kwaru */}
             {isKwaruHost && (
               <div className="flex gap-2">
-                {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                {(['semua', 'etan', 'kulon', 'lainnya'] as const).map((b) => (
                   <button
                     key={b}
                     type="button"
@@ -974,7 +974,7 @@ export function ContributionPage() {
                         : 'border border-slate-200 bg-white text-slate-700'
                     }`}
                   >
-                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                    {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : b === 'kulon' ? 'Kulon' : 'Lainnya'}
                   </button>
                 ))}
               </div>

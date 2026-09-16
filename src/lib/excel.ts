@@ -79,7 +79,7 @@ export function extractStudentNames(rows: ExcelRow[]): string[] {
 
 export type ParsedStudentRow = {
   name: string;
-  blok: 'etan' | 'kulon' | null;
+  blok: 'etan' | 'kulon' | 'lainnya' | null;
 };
 
 export function parseStudentRowsWithBlok(rows: ExcelRow[]): ParsedStudentRow[] {
@@ -102,7 +102,7 @@ export function parseStudentRowsWithBlok(rows: ExcelRow[]): ParsedStudentRow[] {
           if (typeof value === 'string' && value.trim() && !/^\d+$/.test(value.trim())) {
             // skip if this value looks like a blok-only cell
             const lv = value.trim().toLowerCase();
-            if (lv === 'etan' || lv === 'kulon' || lv.includes('blok')) continue;
+            if (lv === 'etan' || lv === 'kulon' || lv === 'lainnya' || lv.includes('blok')) continue;
             raw = value;
             break;
           }
@@ -111,9 +111,10 @@ export function parseStudentRowsWithBlok(rows: ExcelRow[]): ParsedStudentRow[] {
       const name = (raw || '').trim();
       if (!name || /^\d+$/.test(name)) return null;
       const braw = String(blokColumn ? row[blokColumn] || '' : '').toLowerCase();
-      const blok: 'etan' | 'kulon' | null =
+      const blok: 'etan' | 'kulon' | 'lainnya' | null =
         braw.includes('etan') || braw.includes('timur') ? 'etan'
         : braw.includes('kulon') || braw.includes('barat') ? 'kulon'
+        : braw.includes('lainnya') || braw.includes('other') ? 'lainnya'
         : null;
       return { name, blok };
     })
