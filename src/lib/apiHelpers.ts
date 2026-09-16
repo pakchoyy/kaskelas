@@ -1,6 +1,6 @@
 // Helper to map frontend contribution type format to API format
-export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' {
-  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah'> = {
+export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' | 'pisangisasi' {
+  const mapping: Record<string, 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' | 'pisangisasi'> = {
     'kas-kelas': 'kas_kelas',
     'amal-jumat': 'amal_jumat',
     'paguyuban-ngaji': 'paguyuban_ngaji',
@@ -11,18 +11,21 @@ export function mapContributionTypeToApi(type: string): 'kas_kelas' | 'amal_juma
     'ibu-kompor': 'ibu_kompor',
     'ibu-kas': 'ibu_kas',
     'triwulan-jamaah': 'triwulan_jamaah',
+    'pisangisasi': 'pisangisasi',
   };
   return mapping[type] || 'kas_kelas';
 }
 
 // Helper to map API contribution type format to frontend format
-export function mapContributionTypeFromApi(type: string): 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' {
-  const mapping: Record<string, 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks'> = {
+export function mapContributionTypeFromApi(type: string): 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'triwulan-jamaah' | 'pisangisasi' {
+  const mapping: Record<string, 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'triwulan-jamaah' | 'pisangisasi'> = {
     'kas_kelas': 'kas-kelas',
     'amal_jumat': 'amal-jumat',
     'paguyuban_ngaji': 'paguyuban-ngaji',
     'tabungan': 'tabungan',
     'lks': 'lks',
+    'triwulan_jamaah': 'triwulan-jamaah',
+    'pisangisasi': 'pisangisasi',
   };
   return mapping[type] || 'kas-kelas';
 }

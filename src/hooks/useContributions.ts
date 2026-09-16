@@ -3,7 +3,7 @@ import { contributionsApi, settingsApi, type Contribution, type ContributionType
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
 
-type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks';
+type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'pisangisasi';
 
 export function useContributions(
   contributionType: FrontendContributionType,

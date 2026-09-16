@@ -278,7 +278,7 @@ export function StudentsPage() {
         <BottomSheet
           open={importOpen}
           title={isKwaru ? 'Import Jamaah dari Excel' : 'Import Siswa dari Excel'}
-          description="Pilih file .xlsx atau .csv dengan kolom Nama."
+          description={isKwaru ? 'Pilih file .xlsx atau .csv dengan kolom Nama. Untuk blok, isi "Etan" atau "Kulon" di kolom Blok.' : 'Pilih file .xlsx atau .csv dengan kolom Nama.'}
           onClose={() => setImportOpen(false)}
         >
           <div className="space-y-4">

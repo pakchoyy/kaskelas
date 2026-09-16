@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `WITH metrics AS (
         SELECT
           (SELECT COUNT(*) FROM students WHERE active = true AND category = $1 AND scope = $2) as total_students,
-          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'kas_kelas' AND s.active = true AND s.category = $1 AND s.scope = $2) as total_kas,
+          (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type IN ('kas_kelas','pisangisasi') AND s.active = true AND s.category = $1 AND s.scope = $2) as total_kas,
           (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type IN ('tabungan','tabungan_guru_bulanan','tabungan_guru_tw') AND s.active = true AND s.category = $1 AND s.scope = $2) as total_tabungan,
           (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_bulanan' AND s.active = true AND s.category = 'guru' AND s.scope = $2) as total_guru_bulanan,
           (SELECT COALESCE(SUM(c.nominal), 0) FROM contributions c JOIN students s ON s.id = c.student_id WHERE c.contribution_type = 'tabungan_guru_tw' AND s.active = true AND s.category = 'guru' AND s.scope = $2) as total_guru_tw,
@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           NULL as note,
           SUM(c.nominal)::text as amount
         FROM contributions c JOIN students s ON s.id = c.student_id
-        WHERE c.contribution_type = 'kas_kelas' AND s.category = $1 AND s.scope = $2
+        WHERE c.contribution_type IN ('kas_kelas','pisangisasi') AND s.category = $1 AND s.scope = $2
         GROUP BY c.date
         ORDER BY c.date DESC
         LIMIT 5

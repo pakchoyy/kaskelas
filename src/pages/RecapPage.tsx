@@ -31,7 +31,7 @@ function formatLunasRange(months: number[]): string {
   return parts.join(', ');
 }
 
-type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw';
+type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'paguyuban-ngaji' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'pisangisasi' | 'triwulan-jamaah';
 
 type KasView = 'per-siswa' | 'total-kas';
 
@@ -114,6 +114,7 @@ export function RecapPage() {
 
   useEffect(() => {
     if (mode === 'guru') setContributionFilter('tabungan-guru-bulanan');
+    else if (isKwaru) setContributionFilter('pisangisasi');
     else setContributionFilter('kas-kelas');
   }, [mode]);
 
@@ -150,14 +151,15 @@ export function RecapPage() {
 
   // Kas Baru per bulan
   useEffect(() => {
-    if (contributionFilter !== 'kas-kelas' || kasView !== 'per-siswa' || kasBaruView !== 'bulanan' || !recap) return;
+    if ((contributionFilter !== 'kas-kelas' && contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah') || kasView !== 'per-siswa' || kasBaruView !== 'bulanan' || !recap) return;
     const loadKasBulanan = async () => {
       try {
         setKasBaruBulananLoading(true);
         const from = `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-01`;
         const lastDay = new Date(kasBaruMonth.year, kasBaruMonth.month, 0).getDate();
         const to = `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-        const data = await contributionsApi.getAll({ contributionType: 'kas_kelas', dateFrom: from, dateTo: to });
+        const apiType = mapContributionTypeToApi(contributionFilter);
+        const data = await contributionsApi.getAll({ contributionType: apiType, dateFrom: from, dateTo: to });
         const map = new Map<string, { count: number; total: number }>();
         data.forEach((c) => {
           const cur = map.get(c.studentId) || { count: 0, total: 0 };
@@ -266,6 +268,8 @@ export function RecapPage() {
               <span>
                 {contributionFilter === 'semua' && 'Semua Jenis'}
                 {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
+                {contributionFilter === 'pisangisasi' && 'Pisangisasi'}
+                {contributionFilter === 'triwulan-jamaah' && 'Triwulan'}
                 {contributionFilter === 'tabungan' && 'Tabungan'}
                 {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
                 {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
@@ -282,6 +286,14 @@ export function RecapPage() {
                   <>
                     <button type="button" onClick={() => { setContributionFilter('tabungan-guru-bulanan'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'tabungan-guru-bulanan' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Tabungan Bulanan</button>
                     <button type="button" onClick={() => { setContributionFilter('tabungan-guru-tw'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'tabungan-guru-tw' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Tabungan TW</button>
+                  </>
+                ) : isKwaru ? (
+                  <>
+                    <button type="button" onClick={() => { setContributionFilter('pisangisasi'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'pisangisasi' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Pisangisasi</button>
+                    <button type="button" onClick={() => { setContributionFilter('triwulan-jamaah'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'triwulan-jamaah' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Triwulan</button>
+                    <button type="button" onClick={() => { setContributionFilter('amal-jumat'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Amal Jumat</button>
+                    <button type="button" onClick={() => { setContributionFilter('paguyuban-ngaji'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Paguyuban Ngaji</button>
+                    <button type="button" onClick={() => { setContributionFilter('lks'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'lks' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>LKS</button>
                   </>
                 ) : (
                   <>
@@ -384,7 +396,7 @@ export function RecapPage() {
           </div>
         )}
 
-        {contributionFilter === 'kas-kelas' && (
+        {(contributionFilter === 'kas-kelas' || contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah') && (
         <div className="relative">
           <button
             type="button"
@@ -654,7 +666,7 @@ export function RecapPage() {
                 </div>
               )}
             </>
-          ) : contributionFilter === 'kas-kelas' ? (
+          ) : (contributionFilter === 'kas-kelas' || contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah') ? (
             <>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setKasBaruView('total')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${kasBaruView === 'total' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Total Kas</button>

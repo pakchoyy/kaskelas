@@ -16,7 +16,7 @@ import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
 
-type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas' | 'triwulan-jamaah';
+type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas' | 'triwulan-jamaah' | 'pisangisasi';
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
 type SemesterNumber = 1 | 2;
 
@@ -36,11 +36,7 @@ const contributionTypes = [
 ];
 
 const contributionTypesKwaruSiswa = [
-  { value: 'kas-kelas' as const, label: 'Sodaqoh' },
-  { value: 'tabungan' as const, label: 'Tabungan' },
-  { value: 'amal-jumat' as const, label: 'Amal Jumat' },
-  { value: 'paguyuban-ngaji' as const, label: 'Paguyuban Ngaji' },
-  { value: 'lks' as const, label: 'LKS' },
+  { value: 'pisangisasi' as const, label: 'Pisangisasi' },
   { value: 'triwulan-jamaah' as const, label: 'Triwulan' },
 ];
 
@@ -125,12 +121,16 @@ export function ContributionPage() {
   const { mode } = useAppMode();
   const students = useMemo(() => allStudents.filter((s) => (s.category || 'siswa') === mode), [allStudents, mode]);
   
-  const [contributionType, setContributionType] = useState<ContributionType>(() => (mode === 'guru' ? 'tabungan-guru-bulanan' : 'kas-kelas'));
+  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
+  
+  const [contributionType, setContributionType] = useState<ContributionType>(() => {
+    if (mode === 'guru') return 'tabungan-guru-bulanan';
+    if (isKwaruHost) return 'pisangisasi';
+    return 'kas-kelas';
+  });
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
-  
   // Filter blok (Etan/Kulon) - hanya untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
   // Filter huruf per 10 huruf (A-J, K-T, U-Z)
@@ -158,7 +158,7 @@ export function ContributionPage() {
   useEffect(() => {
     const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
     if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'ibu-kompor' : 'tabungan-guru-bulanan');
-    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'kas-kelas' : 'kas-kelas');
+    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'pisangisasi' : 'kas-kelas');
   }, [mode]);
   
   // State untuk edit nominal Kas Kelas
@@ -266,7 +266,7 @@ export function ContributionPage() {
     addContribution: addTabunganContribution,
     updateContribution: updateTabunganContribution,
     removeContribution: removeTabunganContribution,
-  } = useContributions('tabungan', { date: tabunganDate });
+  } = useContributions(contributionType === 'pisangisasi' ? 'pisangisasi' : 'tabungan', { date: tabunganDate });
 
   // Sync Tabungan inputs with saved contributions when navigating days
   const tabunganSyncedDateRef = useRef<string | null>(null);
@@ -590,7 +590,7 @@ export function ContributionPage() {
   const tabunganBalances = useMemo(() => {
     return students.map(student => {
       const balance = contributions
-        .filter(c => c.studentId === student.id && c.contributionType === 'tabungan')
+        .filter(c => c.studentId === student.id && (c.contributionType === 'tabungan' || c.contributionType === 'pisangisasi'))
         .reduce((sum, c) => sum + c.nominal, 0);
       
       return { student, balance };
@@ -829,7 +829,7 @@ export function ContributionPage() {
         const existingToday = contributions.find(
           (c) =>
             c.studentId === editSaldoStudent.id &&
-            c.contributionType === 'tabungan' &&
+            (c.contributionType === 'tabungan' || c.contributionType === 'pisangisasi') &&
             c.date === today
         );
 
@@ -1625,7 +1625,7 @@ export function ContributionPage() {
         )}
 
         {/* MODE TABUNGAN */}
-        {contributionType === 'tabungan' && (
+        {(contributionType === 'tabungan' || contributionType === 'pisangisasi') && (
           <>
             <div className="rounded-2xl bg-white p-4 shadow-soft">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Total Tabungan Kelas</p>

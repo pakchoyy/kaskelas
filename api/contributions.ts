@@ -109,7 +109,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas', 'triwulan_jamaah'].includes(contributionType)) {
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas', 'triwulan_jamaah', 'pisangisasi'].includes(contributionType)) {
     return sendError(res, 'Valid contribution type is required');
   }
   
@@ -123,7 +123,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Nominal must be a non-zero number');
   }
   
-  if (contributionType !== 'tabungan' && nominal <= 0) {
+  if (contributionType !== 'tabungan' && contributionType !== 'pisangisasi' && nominal <= 0) {
     return sendError(res, 'Nominal must be a positive number');
   }
   
@@ -268,7 +268,7 @@ async function handleUpdateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Nominal must be a non-zero number');
   }
 
-  if (nominal !== undefined && existing.contributionType !== 'tabungan' && nominal <= 0) {
+  if (nominal !== undefined && existing.contributionType !== 'tabungan' && existing.contributionType !== 'pisangisasi' && nominal <= 0) {
     return sendError(res, 'Nominal must be a positive number');
   }
   

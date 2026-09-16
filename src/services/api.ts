@@ -44,7 +44,7 @@ export type Student = {
 };
 
 // Contribution types
-export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah';
+export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' | 'pisangisasi';
 
 export type Contribution = {
   id: string;
