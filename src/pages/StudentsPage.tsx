@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Download, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Download, Trash2, Upload } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageShell } from '../components/PageShell';
@@ -26,6 +26,28 @@ export function StudentsPage() {
   const [importMessage, setImportMessage] = useState('');
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter blok & huruf untuk kwaru
+  const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon'>('semua');
+  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+  const [blokFilterOpen, setBlokFilterOpen] = useState(false);
+
+  const studentsFiltered = useMemo(() => {
+    let filtered = students;
+    if (isKwaru && blokFilter !== 'semua') {
+      filtered = filtered.filter((s) => s.blok === blokFilter);
+    }
+    if (isKwaru && hurufFilter !== 'semua') {
+      filtered = filtered.filter((s) => {
+        const first = s.name.charAt(0).toUpperCase();
+        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
+        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
+        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
+        return true;
+      });
+    }
+    return filtered;
+  }, [students, blokFilter, hurufFilter]);
 
   const activeStudent = useMemo(
     () => students.find((student) => student.id === activeStudentId) ?? null,
@@ -144,7 +166,11 @@ export function StudentsPage() {
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{totalLabel}</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">{students.length}</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">
+              {isKwaru && (blokFilter !== 'semua' || hurufFilter !== 'semua')
+                ? `${studentsFiltered.length} / ${students.length}`
+                : students.length}
+            </p>
           </div>
           <div className="flex shrink-0 gap-2">
             <button
@@ -176,12 +202,55 @@ export function StudentsPage() {
           onChange={handleImportFile}
         />
 
+        {isKwaru && (
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setBlokFilterOpen(!blokFilterOpen)}
+                className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
+              >
+                {blokFilter === 'semua' ? 'Semua Blok' : blokFilter === 'etan' ? 'Etan' : 'Kulon'}
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </button>
+              {blokFilterOpen && (
+                <div className="absolute left-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                  {(['semua', 'etan', 'kulon'] as const).map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => { setBlokFilter(b); setBlokFilterOpen(false); }}
+                      className={`block w-full px-4 py-2.5 text-left text-sm ${blokFilter === b ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}
+                    >
+                      {b === 'semua' ? 'Semua Blok' : b === 'etan' ? 'Etan' : 'Kulon'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
+              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setHurufFilter(h)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    hurufFilter === h ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {h === 'semua' ? 'Semua' : h.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-          {students.length === 0 ? (
+          {studentsFiltered.length === 0 ? (
             <div className="p-4 text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah. Tap tombol tambah atau import dari Excel.' : 'Belum ada siswa. Tap tombol tambah atau import dari Excel.'}</div>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {students.map((student, index) => (
+              {studentsFiltered.map((student, index) => (
                 <li key={student.id} className={`flex items-center justify-between gap-3 px-4 py-4 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
                   <div className="min-w-0">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">No. {index + 1}</p>
@@ -278,7 +347,7 @@ export function StudentsPage() {
         <BottomSheet
           open={importOpen}
           title={isKwaru ? 'Import Jamaah dari Excel' : 'Import Siswa dari Excel'}
-          description={isKwaru ? 'Pilih file .xlsx atau .csv dengan kolom Nama. Untuk blok, isi "Etan" atau "Kulon" di kolom Blok.' : 'Pilih file .xlsx atau .csv dengan kolom Nama.'}
+          description={isKwaru ? 'Format: kolom "Nama" (wajib) + kolom "Blok" (isi "Etan" atau "Kulon"). Contoh: Nama=Budi, Blok=Etan.' : 'Pilih file .xlsx atau .csv dengan kolom Nama.'}
           onClose={() => setImportOpen(false)}
         >
           <div className="space-y-4">
