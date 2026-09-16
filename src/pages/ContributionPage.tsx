@@ -1606,7 +1606,7 @@ export function ContributionPage() {
                           <button type="button" onClick={() => handleTriwulanJamaahCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
                           <p className="text-sm font-medium text-slate-900">{student.name}</p>
                         </div>
-                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} />
+                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} step={5000} />
                       </div>
                     );
                   })}
