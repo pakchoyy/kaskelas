@@ -5,6 +5,7 @@ type NominalStepperProps = {
   onChange: (value: string) => void;
   step?: number;
   min?: number;
+  placeholder?: string;
   inputClassName?: string;
 };
 
@@ -13,6 +14,7 @@ export function NominalStepper({
   onChange,
   step = 1000,
   min = 0,
+  placeholder = '0',
   inputClassName = '',
 }: NominalStepperProps) {
   const current = parseInt(value, 10) || 0;
@@ -30,7 +32,7 @@ export function NominalStepper({
       <input
         type="number"
         inputMode="numeric"
-        placeholder="0"
+        placeholder={placeholder}
         step={step}
         min={min}
         value={value}

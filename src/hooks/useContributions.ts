@@ -3,7 +3,7 @@ import { contributionsApi, settingsApi, type Contribution, type ContributionType
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
 
-type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'pisangisasi';
+type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'pisangisasi' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas' | 'triwulan-jamaah';
 
 export function useContributions(
   contributionType: FrontendContributionType,
@@ -99,7 +99,7 @@ export function useContributions(
           nominal,
         };
 
-        if (['paguyuban_ngaji','lks','tabungan_guru_bulanan','tabungan_guru_tw','ibu_kompor','ibu_kas'].includes(apiType as string)) {
+        if (['paguyuban_ngaji','lks','tabungan_guru_bulanan','tabungan_guru_tw','ibu_kompor','ibu_kas','triwulan_jamaah'].includes(apiType as string)) {
           data.periodMonth = periodMonth ?? dateOrPeriod.periodMonth;
           data.periodYear = periodYear ?? dateOrPeriod.periodYear;
         }

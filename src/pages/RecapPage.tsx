@@ -91,6 +91,12 @@ export function RecapPage() {
     return { ...recap, perStudent: filtered };
   }, [recap, blokFilter, hurufFilter]);
 
+  const filteredKasBaruBulanan = useMemo(() => {
+    if (!filteredRecap) return [];
+    const allowedIds = new Set(filteredRecap.perStudent.map((student) => student.id));
+    return kasBaruBulanan.filter((row) => allowedIds.has(row.id));
+  }, [filteredRecap, kasBaruBulanan]);
+
   useEffect(() => {
     const loadRecap = async () => {
       try {
@@ -155,11 +161,18 @@ export function RecapPage() {
     const loadKasBulanan = async () => {
       try {
         setKasBaruBulananLoading(true);
-        const from = `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-01`;
-        const lastDay = new Date(kasBaruMonth.year, kasBaruMonth.month, 0).getDate();
-        const to = `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const apiType = mapContributionTypeToApi(contributionFilter);
-        const data = await contributionsApi.getAll({ contributionType: apiType, dateFrom: from, dateTo: to });
+        const data = contributionFilter === 'triwulan-jamaah'
+          ? await contributionsApi.getAll({
+              contributionType: apiType,
+              periodMonth: Math.floor((kasBaruMonth.month - 1) / 3) + 1,
+              periodYear: kasBaruMonth.year,
+            })
+          : await contributionsApi.getAll({
+              contributionType: apiType,
+              dateFrom: `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-01`,
+              dateTo: `${kasBaruMonth.year}-${String(kasBaruMonth.month).padStart(2, '0')}-${String(new Date(kasBaruMonth.year, kasBaruMonth.month, 0).getDate()).padStart(2, '0')}`,
+            });
         const map = new Map<string, { count: number; total: number }>();
         data.forEach((c) => {
           const cur = map.get(c.studentId) || { count: 0, total: 0 };
@@ -695,7 +708,7 @@ export function RecapPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{kasBaruBulanan.map((row, index) => (<tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{index + 1}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td><td className="px-4 py-3 text-slate-600">{row.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(row.total)}</td></tr>))}</tbody>
+                        <tbody className="divide-y divide-slate-100">{filteredKasBaruBulanan.map((row, index) => (<tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{index + 1}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td><td className="px-4 py-3 text-slate-600">{row.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(row.total)}</td></tr>))}</tbody>
                       </table>
                     </div>
                   )}

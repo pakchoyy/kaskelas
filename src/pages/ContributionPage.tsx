@@ -121,11 +121,9 @@ export function ContributionPage() {
   const { mode } = useAppMode();
   const students = useMemo(() => allStudents.filter((s) => (s.category || 'siswa') === mode), [allStudents, mode]);
   
-  const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
-  
   const [contributionType, setContributionType] = useState<ContributionType>(() => {
     if (mode === 'guru') return 'tabungan-guru-bulanan';
-    if (isKwaruHost) return 'pisangisasi';
+    if (isKwaru) return 'pisangisasi';
     return 'kas-kelas';
   });
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
@@ -139,7 +137,7 @@ export function ContributionPage() {
   const studentsFiltered = useMemo(() => {
     let filtered = students;
     // Filter blok hanya untuk kwaru
-    if (isKwaruHost && blokFilter !== 'semua') {
+    if (isKwaru && blokFilter !== 'semua') {
       filtered = filtered.filter((s) => s.blok === blokFilter);
     }
     // Filter huruf
@@ -153,13 +151,12 @@ export function ContributionPage() {
       });
     }
     return filtered;
-  }, [students, blokFilter, hurufFilter, isKwaruHost]);
+  }, [students, blokFilter, hurufFilter]);
 
   useEffect(() => {
-    const isKwaruHost = typeof window !== 'undefined' && window.location.hostname.includes('kwaru');
-    if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'ibu-kompor' : 'tabungan-guru-bulanan');
-    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaruHost ? 'pisangisasi' : 'kas-kelas');
-  }, [mode]);
+    if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'ibu-kompor' : 'tabungan-guru-bulanan');
+    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'pisangisasi' : 'kas-kelas');
+  }, [mode, contributionType]);
   
   // State untuk edit nominal Kas Kelas
   const [editNominalOpen, setEditNominalOpen] = useState(false);
@@ -386,7 +383,7 @@ export function ContributionPage() {
     updateContribution: updateTriwulanJamaah,
     removeContribution: removeTriwulanJamaah,
     loading: triwulanJamaahLoading,
-  } = useContributions('triwulan-jamaah' as any, {
+  } = useContributions('triwulan-jamaah', {
     periodMonth: triwulanPeriod.triwulan,
     periodYear: triwulanPeriod.year,
   });
@@ -918,11 +915,11 @@ export function ContributionPage() {
     }
   };
 
-  const typesToShow = mode === 'guru' ? (isKwaruHost ? contributionTypesIbu : contributionTypesGuru) : (isKwaruHost ? contributionTypesKwaruSiswa : contributionTypes);
+  const typesToShow = mode === 'guru' ? (isKwaru ? contributionTypesIbu : contributionTypesGuru) : (isKwaru ? contributionTypesKwaruSiswa : contributionTypes);
   const currentTypeLabel = typesToShow.find((t) => t.value === contributionType)?.label || '';
 
   return (
-    <PageShell title="Iuran" description={mode === 'guru' ? (isKwaruHost ? 'Catat iuran ibu-ibu.' : 'Catat iuran guru.') : (isKwaruHost ? 'Catat iuran jamaah untuk berbagai jenis iuran.' : 'Catat iuran siswa untuk berbagai jenis iuran.')}>
+    <PageShell title="Iuran" description={mode === 'guru' ? (isKwaru ? 'Catat iuran ibu-ibu.' : 'Catat iuran guru.') : (isKwaru ? 'Catat iuran jamaah untuk berbagai jenis iuran.' : 'Catat iuran siswa untuk berbagai jenis iuran.')}>
       <div className="space-y-3">
         {/* Dropdown Jenis Iuran */}
         <div className="relative">
@@ -958,10 +955,10 @@ export function ContributionPage() {
         </div>
 
         {/* Filter Blok & Huruf - hanya kwaru + siswa */}
-        {mode === 'siswa' && isKwaruHost && (
+        {mode === 'siswa' && isKwaru && (
           <div className="space-y-2">
             {/* Filter Blok - hanya untuk kwaru */}
-            {isKwaruHost && (
+            {isKwaru && (
               <div className="flex gap-2">
                 {(['semua', 'etan', 'kulon', 'lainnya'] as const).map((b) => (
                   <button
@@ -1043,12 +1040,12 @@ export function ContributionPage() {
               </div>
 
               {studentsFiltered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
+                <p className="py-6 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
               ) : (
                 <table className="w-full table-fixed text-sm">
                   <thead>
                     <tr className="border-b border-slate-100">
-                      <th className="w-[35%] px-2 py-2 text-left text-xs font-medium text-slate-500">{isKwaruHost ? 'Jamaah' : 'Siswa'}</th>
+                      <th className="w-[35%] px-2 py-2 text-left text-xs font-medium text-slate-500">{isKwaru ? 'Jamaah' : 'Siswa'}</th>
                       {weekDays.map((wd) => (
                         <th key={wd.key} className="w-[16.25%] px-1 py-2 text-center text-xs font-medium text-slate-500">
                           {wd.label}
@@ -1149,7 +1146,7 @@ export function ContributionPage() {
               {amalLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
               ) : studentsFiltered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
+                <p className="py-6 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
               ) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => (
@@ -1240,14 +1237,14 @@ export function ContributionPage() {
                 </button>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-500">Iuran per {isKwaruHost ? 'jamaah' : 'siswa'}</p>
+                <p className="text-xs text-slate-500">Iuran per {isKwaru ? 'jamaah' : 'siswa'}</p>
                 <p className="text-base font-semibold text-slate-900">{formatCurrency(paguyubanNominal)}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {studentsFiltered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
+                <p className="py-6 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
               ) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => {
@@ -1283,7 +1280,7 @@ export function ContributionPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-slate-500">Sudah bayar</p>
-                  <p className="mt-1 text-base font-semibold text-slate-900">{isKwaruHost ? `${paguyubanStats.paidCount} jamaah` : `${paguyubanStats.paidCount} siswa`}</p>
+                  <p className="mt-1 text-base font-semibold text-slate-900">{isKwaru ? `${paguyubanStats.paidCount} jamaah` : `${paguyubanStats.paidCount} siswa`}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-medium text-slate-500">Total</p>
@@ -1359,7 +1356,7 @@ export function ContributionPage() {
                 )}
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-500">Iuran per {isKwaruHost ? 'jamaah' : 'siswa'}</p>
+                <p className="text-xs text-slate-500">Iuran per {isKwaru ? 'jamaah' : 'siswa'}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-base font-semibold text-slate-900">{formatCurrency(lksNominal)}</p>
                   <button
@@ -1376,7 +1373,7 @@ export function ContributionPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {studentsFiltered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
+                <p className="py-6 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah terdaftar.' : 'Belum ada siswa terdaftar.'}</p>
               ) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => {
@@ -1412,7 +1409,7 @@ export function ContributionPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-slate-500">Sudah bayar</p>
-                  <p className="mt-1 text-base font-semibold text-slate-900">{isKwaruHost ? `${lksStats.paidCount} jamaah` : `${lksStats.paidCount} siswa`}</p>
+                  <p className="mt-1 text-base font-semibold text-slate-900">{isKwaru ? `${lksStats.paidCount} jamaah` : `${lksStats.paidCount} siswa`}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-medium text-slate-500">Total</p>
@@ -1596,7 +1593,7 @@ export function ContributionPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {triwulanJamaahLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah terdaftar.' : 'Belum ada jamaah terdaftar.'}</p>) : (
+              {triwulanJamaahLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada jamaah terdaftar.</p>) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => {
                     const isPaid = hasTriwulanJamaahPaid(student.id);
@@ -1606,7 +1603,7 @@ export function ContributionPage() {
                           <button type="button" onClick={() => handleTriwulanJamaahCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
                           <p className="text-sm font-medium text-slate-900">{student.name}</p>
                         </div>
-                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} step={5000} />
+                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} step={5000} placeholder={String(triwulanJamaahNominal)} />
                       </div>
                     );
                   })}
@@ -1682,7 +1679,7 @@ export function ContributionPage() {
               {tabunganLoading ? (
                 <p className="py-6 text-center text-sm text-slate-500">Memuat data...</p>
               ) : studentsFiltered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">{isKwaruHost ? 'Belum ada jamaah. Tambah data jamaah dulu di menu Jamaah.' : 'Belum ada siswa. Tambah data siswa dulu di menu Siswa.'}</p>
+                <p className="py-6 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada jamaah. Tambah data jamaah dulu di menu Jamaah.' : 'Belum ada siswa. Tambah data siswa dulu di menu Siswa.'}</p>
               ) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => {
@@ -1809,7 +1806,7 @@ export function ContributionPage() {
       <BottomSheet
         open={editLksNominalOpen}
         title="Edit Nominal LKS"
-        description={isKwaruHost ? 'Ubah nominal iuran LKS per jamaah' : 'Ubah nominal iuran LKS per siswa'}
+        description={isKwaru ? 'Ubah nominal iuran LKS per jamaah' : 'Ubah nominal iuran LKS per siswa'}
         onClose={() => setEditLksNominalOpen(false)}
       >
         <div className="space-y-4">

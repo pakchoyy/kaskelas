@@ -130,11 +130,25 @@ export function StudentsPage() {
         return;
       }
 
-      const existing = new Set(students.map((s) => s.name.trim().toLowerCase()));
-      const toAdd = names.filter((name) => !existing.has(name.trim().toLowerCase()));
+      const existingByName = new Map(students.map((s) => [s.name.trim().toLowerCase(), s]));
+      const toAdd = names.filter((name) => !existingByName.has(name.trim().toLowerCase()));
       const skipped = names.length - toAdd.length;
 
       let success = 0;
+      let updatedBlok = 0;
+      if (isKwaru) {
+        for (const parsedRow of parsed) {
+          const existingStudent = existingByName.get(parsedRow.name.trim().toLowerCase());
+          if (!existingStudent || !parsedRow.blok || existingStudent.blok === parsedRow.blok) {
+            continue;
+          }
+          const ok = await updateStudent(existingStudent.id, existingStudent.name, parsedRow.blok);
+          if (ok) {
+            updatedBlok += 1;
+          }
+        }
+      }
+
       for (const name of toAdd) {
         const blok = blokMap.get(name.toLowerCase()) || null;
         const ok = await addStudent(name, mode, blok);
@@ -147,6 +161,9 @@ export function StudentsPage() {
       const parts = [isKwaru ? `${success} jamaah berhasil diimpor.` : `${success} siswa berhasil diimpor.`];
       if (skipped > 0) {
         parts.push(`${skipped} dilewati (sudah ada).`);
+      }
+      if (updatedBlok > 0) {
+        parts.push(`${updatedBlok} blok diperbarui.`);
       }
       if (failed > 0) {
         parts.push(`${failed} gagal disimpan.`);
