@@ -141,6 +141,15 @@ export type AmalJumatMarker = {
   updatedAt: string;
 };
 
+export type HandoverMarker = {
+  id: string;
+  scope: string;
+  markerKey: string;
+  handedOver: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // Students API
 export const studentsApi = {
   async getAll(includeInactive = false, category?: 'siswa' | 'guru'): Promise<Student[]> {
@@ -344,6 +353,22 @@ export const amalJumatApi = {
     return fetchApi<AmalJumatMarker>('/markers', {
       method: 'PATCH',
       body: JSON.stringify({ fridayDate, handedOver }),
+    });
+  },
+};
+
+export const handoverApi = {
+  async get(markerKey: string): Promise<HandoverMarker | null> {
+    const params = new URLSearchParams();
+    params.set('scope', appScope);
+    params.set('marker_key', markerKey);
+    return fetchApi<HandoverMarker | null>(`/handover-markers?${params.toString()}`);
+  },
+
+  async upsert(markerKey: string, handedOver: boolean): Promise<HandoverMarker> {
+    return fetchApi<HandoverMarker>('/handover-markers', {
+      method: 'PATCH',
+      body: JSON.stringify({ scope: appScope, markerKey, handedOver }),
     });
   },
 };

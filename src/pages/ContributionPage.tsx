@@ -10,7 +10,7 @@ import { useAppMode } from '../hooks/useAppMode';
 import { useContributions } from '../hooks/useContributions';
 import { useNotes } from '../hooks/useNotes';
 import { useAmalJumatMarker } from '../hooks/useAmalJumatMarker';
-import { settingsApi } from '../services/api';
+import { handoverApi, settingsApi } from '../services/api';
 import { isKwaru } from '../lib/appScope';
 import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 import { formatCurrency } from '../lib/format';
@@ -585,20 +585,40 @@ export function ContributionPage() {
       ? `bgy-handover-pisangisasi-${new Date(`${tabunganDate}T00:00:00`).getFullYear()}`
       : '';
   const [handoverDone, setHandoverDone] = useState(false);
+  const [handoverSaving, setHandoverSaving] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     if (!handoverKey) {
       setHandoverDone(false);
       return;
     }
-    setHandoverDone(window.localStorage.getItem(handoverKey) === 'true');
+    setHandoverDone(false);
+    handoverApi.get(handoverKey)
+      .then((marker) => {
+        if (!cancelled) {
+          setHandoverDone(marker?.handedOver ?? false);
+        }
+      })
+      .catch((err) => console.error('Failed to load handover marker:', err));
+    return () => {
+      cancelled = true;
+    };
   }, [handoverKey]);
 
-  const toggleHandoverDone = () => {
+  const toggleHandoverDone = async () => {
     if (!handoverKey) return;
     const next = !handoverDone;
     setHandoverDone(next);
-    window.localStorage.setItem(handoverKey, String(next));
+    setHandoverSaving(true);
+    try {
+      await handoverApi.upsert(handoverKey, next);
+    } catch (err) {
+      setHandoverDone(!next);
+      console.error('Failed to update handover marker:', err);
+    } finally {
+      setHandoverSaving(false);
+    }
   };
 
   // Notes: Kas Kelas per minggu (kunci = hari Senin), Tabungan per hari
@@ -1607,9 +1627,10 @@ export function ContributionPage() {
               <button
                 type="button"
                 onClick={toggleHandoverDone}
+                disabled={handoverSaving}
                 className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
                   handoverDone ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700'
-                }`}
+                } disabled:opacity-50`}
               >
                 <Check className="h-4 w-4" strokeWidth={3} />
                 {handoverDone ? 'Sudah diserahkan' : 'Tandai diserahkan'}
@@ -1672,9 +1693,10 @@ export function ContributionPage() {
                 <button
                   type="button"
                   onClick={toggleHandoverDone}
+                  disabled={handoverSaving}
                   className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
                     handoverDone ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700'
-                  }`}
+                  } disabled:opacity-50`}
                 >
                   <Check className="h-4 w-4" strokeWidth={3} />
                   {handoverDone ? 'Sudah diserahkan' : 'Tandai diserahkan'}
