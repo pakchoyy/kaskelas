@@ -37,7 +37,7 @@ async function handleGetStudents(req: VercelRequest, res: VercelResponse) {
     sql += ` AND category = $${params.length + 1}`;
     params.push(category);
   }
-  sql += ' ORDER BY created_at';
+  sql += ' ORDER BY name';
   
   const students = await query<Student>(sql, params);
   sendSuccess(res, students);

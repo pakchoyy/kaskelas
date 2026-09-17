@@ -7,6 +7,7 @@ import { recapApi, contributionsApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { useAppMode } from '../hooks/useAppMode';
 import { isKwaru } from '../lib/appScope';
+import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -71,22 +72,16 @@ export function RecapPage() {
 
   // Filter blok & huruf untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
-  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+  const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
 
   const filteredRecap = useMemo(() => {
     if (!recap) return null;
-    let filtered = recap.perStudent;
+    let filtered = sortByName(recap.perStudent);
     if (isKwaru && blokFilter !== 'semua') {
       filtered = filtered.filter((s) => s.blok === blokFilter);
     }
     if (hurufFilter !== 'semua') {
-      filtered = filtered.filter((s) => {
-        const first = s.name.charAt(0).toUpperCase();
-        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
-        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
-        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
-        return true;
-      });
+      filtered = filtered.filter((s) => matchesLetterFilter(s.name, hurufFilter));
     }
     return { ...recap, perStudent: filtered };
   }, [recap, blokFilter, hurufFilter]);
@@ -391,18 +386,18 @@ export function RecapPage() {
               </div>
             )}
             <div className="flex gap-2">
-              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+              {letterFilterOptions.map((option) => (
                 <button
-                  key={h}
+                  key={option.value}
                   type="button"
-                  onClick={() => setHurufFilter(h)}
+                  onClick={() => setHurufFilter(option.value)}
                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                    hurufFilter === h
+                    hurufFilter === option.value
                       ? 'bg-brand-600 text-white'
                       : 'border border-slate-200 bg-white text-slate-700'
                   }`}
                 >
-                  {h === 'semua' ? 'Semua' : h === 'a-j' ? 'A-J' : h === 'k-t' ? 'K-T' : 'U-Z'}
+                  {option.label}
                 </button>
               ))}
             </div>

@@ -12,6 +12,7 @@ import { useNotes } from '../hooks/useNotes';
 import { useAmalJumatMarker } from '../hooks/useAmalJumatMarker';
 import { settingsApi } from '../services/api';
 import { isKwaru } from '../lib/appScope';
+import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
 import { requestSync } from '../lib/sync';
@@ -131,24 +132,17 @@ export function ContributionPage() {
 
   // Filter blok (Etan/Kulon) - hanya untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
-  // Filter huruf per 10 huruf (A-J, K-T, U-Z)
-  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+  const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
 
   const studentsFiltered = useMemo(() => {
-    let filtered = students;
+    let filtered = sortByName(students);
     // Filter blok hanya untuk kwaru
     if (isKwaru && blokFilter !== 'semua') {
       filtered = filtered.filter((s) => s.blok === blokFilter);
     }
     // Filter huruf
     if (hurufFilter !== 'semua') {
-      filtered = filtered.filter((s) => {
-        const first = s.name.charAt(0).toUpperCase();
-        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
-        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
-        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
-        return true;
-      });
+      filtered = filtered.filter((s) => matchesLetterFilter(s.name, hurufFilter));
     }
     return filtered;
   }, [students, blokFilter, hurufFilter]);
@@ -976,20 +970,20 @@ export function ContributionPage() {
                 ))}
               </div>
             )}
-            {/* Filter Huruf per 10 huruf */}
+            {/* Filter Huruf */}
             <div className="flex gap-2">
-              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+              {letterFilterOptions.map((option) => (
                 <button
-                  key={h}
+                  key={option.value}
                   type="button"
-                  onClick={() => setHurufFilter(h)}
+                  onClick={() => setHurufFilter(option.value)}
                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                    hurufFilter === h
+                    hurufFilter === option.value
                       ? 'bg-brand-600 text-white'
                       : 'border border-slate-200 bg-white text-slate-700'
                   }`}
                 >
-                  {h === 'semua' ? 'Semua' : h === 'a-j' ? 'A-J' : h === 'k-t' ? 'K-T' : 'U-Z'}
+                  {option.label}
                 </button>
               ))}
             </div>

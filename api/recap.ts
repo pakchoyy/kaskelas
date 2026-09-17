@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         AND c.contribution_type = $1
       WHERE s.active = true AND s.category = $2 AND s.scope = $3
       GROUP BY s.id, s.name, s.blok
-      ORDER BY s.created_at`,
+      ORDER BY s.name`,
       [contributionType, categoryFilter, scope]
     );
     
@@ -107,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           AND c.period_year = $1
         WHERE s.active = true AND s.category = 'siswa' AND s.scope = $2
         GROUP BY s.id, s.name
-        ORDER BY s.created_at`,
+        ORDER BY s.name`,
         [currentYear, scope]
       );
       paguyubanMonths = monthRows.map((row) => ({

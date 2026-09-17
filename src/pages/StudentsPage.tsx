@@ -7,6 +7,7 @@ import { useAppData } from '../hooks/useAppData';
 import { useAppMode } from '../hooks/useAppMode';
 import { isKwaru } from '../lib/appScope';
 import { extractStudentNames, parseStudentRowsWithBlok, readExcelRows } from '../lib/excel';
+import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 
 type StudentFormMode = 'create' | 'edit';
 
@@ -29,22 +30,16 @@ export function StudentsPage() {
 
   // Filter blok & huruf untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
-  const [hurufFilter, setHurufFilter] = useState<'semua' | 'a-j' | 'k-t' | 'u-z'>('semua');
+  const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
   const [blokFilterOpen, setBlokFilterOpen] = useState(false);
 
   const studentsFiltered = useMemo(() => {
-    let filtered = students;
+    let filtered = sortByName(students);
     if (isKwaru && blokFilter !== 'semua') {
       filtered = filtered.filter((s) => s.blok === blokFilter);
     }
     if (isKwaru && hurufFilter !== 'semua') {
-      filtered = filtered.filter((s) => {
-        const first = s.name.charAt(0).toUpperCase();
-        if (hurufFilter === 'a-j') return first >= 'A' && first <= 'J';
-        if (hurufFilter === 'k-t') return first >= 'K' && first <= 'T';
-        if (hurufFilter === 'u-z') return first >= 'U' && first <= 'Z';
-        return true;
-      });
+      filtered = filtered.filter((s) => matchesLetterFilter(s.name, hurufFilter));
     }
     return filtered;
   }, [students, blokFilter, hurufFilter]);
@@ -249,16 +244,16 @@ export function StudentsPage() {
               )}
             </div>
             <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
-              {(['semua', 'a-j', 'k-t', 'u-z'] as const).map((h) => (
+              {letterFilterOptions.map((option) => (
                 <button
-                  key={h}
+                  key={option.value}
                   type="button"
-                  onClick={() => setHurufFilter(h)}
+                  onClick={() => setHurufFilter(option.value)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                    hurufFilter === h ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                    hurufFilter === option.value ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {h === 'semua' ? 'Semua' : h.toUpperCase()}
+                  {option.label}
                 </button>
               ))}
             </div>
