@@ -114,7 +114,7 @@ export function parseStudentRowsWithBlok(rows: ExcelRow[]): ParsedStudentRow[] {
       const blok: 'etan' | 'kulon' | 'lainnya' | null =
         braw.includes('etan') || braw.includes('timur') ? 'etan'
         : braw.includes('kulon') || braw.includes('barat') ? 'kulon'
-        : braw.includes('lainnya') || braw.includes('other') ? 'lainnya'
+        : braw ? 'lainnya'
         : null;
       return { name, blok };
     })

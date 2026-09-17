@@ -71,7 +71,7 @@ export function StudentsPage() {
     setActiveStudentId(studentId);
     setFormMode('edit');
     setDraftName(student.name);
-    setDraftBlok(student.blok === 'etan' || student.blok === 'kulon' ? student.blok : '');
+    setDraftBlok(student.blok === 'etan' || student.blok === 'kulon' || student.blok === 'lainnya' ? student.blok : '');
     setErrorMessage('');
     setSheetOpen(true);
   };
