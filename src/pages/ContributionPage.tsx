@@ -362,7 +362,6 @@ export function ContributionPage() {
   const ibuKasStats = useMemo(() => ({ paidCount: getIbuKasIds().length, total: getIbuKasIds().length * ibuNominal }), [getIbuKasIds]);
 
   // Triwulan Jamaah logic
-  const triwulanJamaahNominal = 25000;
   const [triwulanJamaahNominals, setTriwulanJamaahNominals] = useState<Record<string, string>>({});
   const triwulanPeriod = useMemo(() => {
     const triwulan = Math.floor(monthInfo.month / 3) + 1;
@@ -370,9 +369,6 @@ export function ContributionPage() {
   }, [monthInfo]);
   const {
     contributions: triwulanJamaahRecords,
-    toggleStudent: toggleTriwulanJamaah,
-    hasStudentPaid: hasTriwulanJamaahPaid,
-    getPaidStudentIds: getTriwulanJamaahIds,
     addContribution: addTriwulanJamaah,
     updateContribution: updateTriwulanJamaah,
     removeContribution: removeTriwulanJamaah,
@@ -411,30 +407,6 @@ export function ContributionPage() {
       }
     } catch (err) { console.error('Triwulan Jamaah save gagal', err); }
   };
-  const handleTriwulanJamaahCheckToggle = (studentId: string) => {
-    const isPaid = hasTriwulanJamaahPaid(studentId);
-    if (isPaid) {
-      const existing = triwulanJamaahRecords.find((c) => c.studentId === studentId);
-      if (existing) removeTriwulanJamaah(existing.id);
-    } else {
-      const nominalStr = triwulanJamaahNominals[studentId] || String(triwulanJamaahNominal);
-      const nominal = parseInt(nominalStr, 10) || triwulanJamaahNominal;
-      addTriwulanJamaah(studentId, nominal, undefined, triwulanPeriod.triwulan, triwulanPeriod.year);
-    }
-  };
-  const handleTriwulanJamaahSave = async () => {
-    for (const s of studentsFiltered) {
-      const raw = triwulanJamaahNominals[s.id] || '';
-      const nominal = parseInt(raw, 10) || 0;
-      const existing = triwulanJamaahRecords.find((c) => c.studentId === s.id);
-      if (nominal > 0) {
-        if (!existing) await addTriwulanJamaah(s.id, nominal, undefined, triwulanPeriod.triwulan, triwulanPeriod.year);
-        else if (existing.nominal !== nominal) await updateTriwulanJamaah(existing.id, { nominal });
-      } else if (existing) await removeTriwulanJamaah(existing.id);
-    }
-    await reload();
-  };
-
   // Guru Tabungan logic
   const guruBulananNominal = 50000;
   const [guruBulananNominals, setGuruBulananNominals] = useState<Record<string, string>>({});
@@ -1581,23 +1553,15 @@ export function ContributionPage() {
                 <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
               </div>
               <p className="mt-1 text-center text-xs text-slate-400">{triwulanPeriod.triwulan === 1 ? 'Jan - Mar' : triwulanPeriod.triwulan === 2 ? 'Apr - Jun' : triwulanPeriod.triwulan === 3 ? 'Jul - Sep' : 'Okt - Des'}</p>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-500">Iuran per jamaah</p>
-                <p className="text-base font-semibold text-slate-900">{formatCurrency(triwulanJamaahNominal)}</p>
-              </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {triwulanJamaahLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada jamaah terdaftar.</p>) : (
                 <div className="space-y-2">
                   {studentsFiltered.map((student, index) => {
-                    const isPaid = hasTriwulanJamaahPaid(student.id);
                     return (
                       <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => handleTriwulanJamaahCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
-                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                        </div>
-                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} step={5000} placeholder={String(triwulanJamaahNominal)} />
+                        <p className="min-w-0 flex-1 text-sm font-medium text-slate-900">{student.name}</p>
+                        <NominalStepper value={triwulanJamaahNominals[student.id] || ''} onChange={(v) => handleTriwulanJamaahChange(student.id, v)} step={5000} />
                       </div>
                     );
                   })}
@@ -1610,7 +1574,6 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(triwulanJamaahStats.total)}</p></div>
               </div>
             </div>
-            <button type="button" onClick={handleTriwulanJamaahSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}

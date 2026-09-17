@@ -70,6 +70,10 @@ export function RecapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const effectiveContributionFilter: ContributionFilter = isKwaru && mode !== 'guru' && contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah'
+    ? 'pisangisasi'
+    : contributionFilter;
+
   // Filter blok & huruf untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
@@ -98,7 +102,7 @@ export function RecapPage() {
         setLoading(true);
         setError(null);
         
-        const apiType = mapContributionTypeToApi(contributionFilter === 'semua' ? 'kas-kelas' : contributionFilter);
+        const apiType = mapContributionTypeToApi(effectiveContributionFilter === 'semua' ? 'kas-kelas' : effectiveContributionFilter);
         const data = await recapApi.getData(apiType);
         setRecap(data);
       } catch (err) {
@@ -111,13 +115,21 @@ export function RecapPage() {
     };
 
     loadRecap();
-  }, [contributionFilter]);
+  }, [effectiveContributionFilter]);
 
   useEffect(() => {
-    if (mode === 'guru') setContributionFilter('tabungan-guru-bulanan');
-    else if (isKwaru) setContributionFilter('pisangisasi');
-    else setContributionFilter('kas-kelas');
-  }, [mode]);
+    if (mode === 'guru') {
+      if (contributionFilter !== 'tabungan-guru-bulanan' && contributionFilter !== 'tabungan-guru-tw') {
+        setContributionFilter('tabungan-guru-bulanan');
+      }
+    } else if (isKwaru) {
+      if (contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah') {
+        setContributionFilter('pisangisasi');
+      }
+    } else if (contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah' || contributionFilter === 'tabungan-guru-bulanan' || contributionFilter === 'tabungan-guru-tw') {
+      setContributionFilter('kas-kelas');
+    }
+  }, [mode, contributionFilter]);
 
   // Tabungan per bulan
   useEffect(() => {
@@ -217,7 +229,7 @@ export function RecapPage() {
     setRefreshMessage('');
 
     try {
-      const apiType = mapContributionTypeToApi(contributionFilter === 'semua' ? 'kas-kelas' : contributionFilter);
+      const apiType = mapContributionTypeToApi(effectiveContributionFilter === 'semua' ? 'kas-kelas' : effectiveContributionFilter);
       const data = await recapApi.getData(apiType);
       setRecap(data);
       setRefreshState('success');
@@ -279,9 +291,9 @@ export function RecapPage() {
                 {contributionFilter === 'pisangisasi' && 'Pisangisasi'}
                 {contributionFilter === 'triwulan-jamaah' && 'Triwulan'}
                 {contributionFilter === 'tabungan' && 'Tabungan'}
-                {contributionFilter === 'amal-jumat' && 'Amal Jumat'}
-                {contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
-                {contributionFilter === 'lks' && 'LKS'}
+                {!isKwaru && contributionFilter === 'amal-jumat' && 'Amal Jumat'}
+                {!isKwaru && contributionFilter === 'paguyuban-ngaji' && 'Paguyuban Ngaji'}
+                {!isKwaru && contributionFilter === 'lks' && 'LKS'}
                 {contributionFilter === 'tabungan-guru-bulanan' && 'Tabungan Bulanan'}
                 {contributionFilter === 'tabungan-guru-tw' && 'Tabungan TW'}
               </span>
@@ -299,9 +311,6 @@ export function RecapPage() {
                   <>
                     <button type="button" onClick={() => { setContributionFilter('pisangisasi'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'pisangisasi' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Pisangisasi</button>
                     <button type="button" onClick={() => { setContributionFilter('triwulan-jamaah'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'triwulan-jamaah' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Triwulan</button>
-                    <button type="button" onClick={() => { setContributionFilter('amal-jumat'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'amal-jumat' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Amal Jumat</button>
-                    <button type="button" onClick={() => { setContributionFilter('paguyuban-ngaji'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'paguyuban-ngaji' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>Paguyuban Ngaji</button>
-                    <button type="button" onClick={() => { setContributionFilter('lks'); setFilterOpen(false); setKasView('per-siswa'); }} className={`block w-full px-4 py-3 text-left text-sm ${contributionFilter === 'lks' ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>LKS</button>
                   </>
                 ) : (
                   <>
