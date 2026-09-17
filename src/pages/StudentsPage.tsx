@@ -121,7 +121,9 @@ export function StudentsPage() {
     try {
       setImporting(true);
       const rows = await readExcelRows(file);
-      const names = extractStudentNames(rows);
+      const parsed = parseStudentRowsWithBlok(rows);
+      const names = parsed.map((p) => p.name);
+      const blokMap = new Map(parsed.map((p) => [p.name.toLowerCase(), p.blok]));
 
       if (names.length === 0) {
         setImportMessage(`Tidak ada nama ditemukan. Pastikan kolom nama terisi (mis. "Nama" atau "${isKwaru ? 'Nama Jamaah' : 'Nama Siswa'}").`);
@@ -134,7 +136,8 @@ export function StudentsPage() {
 
       let success = 0;
       for (const name of toAdd) {
-        const ok = await addStudent(name);
+        const blok = blokMap.get(name.toLowerCase()) || null;
+        const ok = await addStudent(name, mode, blok);
         if (ok) {
           success += 1;
         }
