@@ -164,16 +164,22 @@ export function RecapPage() {
 
   // Kas Baru per bulan
   useEffect(() => {
-    if ((contributionFilter !== 'kas-kelas' && contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah') || kasView !== 'per-siswa' || kasBaruView !== 'bulanan' || !recap) return;
+    if ((effectiveContributionFilter !== 'kas-kelas' && effectiveContributionFilter !== 'pisangisasi' && effectiveContributionFilter !== 'triwulan-jamaah') || (!isKwaru && kasBaruView !== 'bulanan') || !recap) return;
     const loadKasBulanan = async () => {
       try {
         setKasBaruBulananLoading(true);
-        const apiType = mapContributionTypeToApi(contributionFilter);
-        const data = contributionFilter === 'triwulan-jamaah'
+        const apiType = mapContributionTypeToApi(effectiveContributionFilter);
+        const data = effectiveContributionFilter === 'triwulan-jamaah'
           ? await contributionsApi.getAll({
               contributionType: apiType,
               periodMonth: Math.floor((kasBaruMonth.month - 1) / 3) + 1,
               periodYear: kasBaruMonth.year,
+            })
+          : effectiveContributionFilter === 'pisangisasi'
+          ? await contributionsApi.getAll({
+              contributionType: apiType,
+              dateFrom: `${kasBaruMonth.year}-01-01`,
+              dateTo: `${kasBaruMonth.year}-12-31`,
             })
           : await contributionsApi.getAll({
               contributionType: apiType,
@@ -199,7 +205,7 @@ export function RecapPage() {
       }
     };
     loadKasBulanan();
-  }, [contributionFilter, kasView, kasBaruView, kasBaruMonth, recap]);
+  }, [effectiveContributionFilter, kasBaruView, kasBaruMonth, recap, isKwaru]);
 
   // Guru rekap per bulan — filter by period (bukan date) biar Agustus tidak nyangkut di September
   useEffect(() => {
@@ -413,7 +419,7 @@ export function RecapPage() {
           </div>
         )}
 
-        {(contributionFilter === 'kas-kelas' || contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah') && (
+        {!isKwaru && (contributionFilter === 'kas-kelas' || contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah') && (
         <div className="relative">
           <button
             type="button"
@@ -457,7 +463,7 @@ export function RecapPage() {
         </div>
         )}
 
-        {kasView === 'total-kas' && (
+        {!isKwaru && kasView === 'total-kas' && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Saldo Akhir Jamaah' : 'Kas Akhir Siswa'}</h3>
@@ -646,7 +652,7 @@ export function RecapPage() {
           </>
         )}
 
-        {kasView === 'per-siswa' && contributionFilter !== 'tabungan' && contributionFilter !== 'paguyuban-ngaji' && (
+        {(isKwaru || kasView === 'per-siswa') && contributionFilter !== 'tabungan' && contributionFilter !== 'paguyuban-ngaji' && (
           mode === 'guru' ? (
             <>
               <div className="grid grid-cols-2 gap-2">
@@ -685,11 +691,11 @@ export function RecapPage() {
             </>
           ) : (contributionFilter === 'kas-kelas' || contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah') ? (
             <>
-              <div className="grid grid-cols-2 gap-2">
+              {!isKwaru && <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setKasBaruView('total')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${kasBaruView === 'total' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Total Kas</button>
                 <button type="button" onClick={() => setKasBaruView('bulanan')} className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${kasBaruView === 'bulanan' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Kas Per Bulan</button>
-              </div>
-              {kasBaruView === 'total' ? (
+              </div>}
+              {!isKwaru && kasBaruView === 'total' ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
                   <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-base font-semibold text-slate-900">{isKwaru ? 'Per Jamaah — Total' : 'Per Siswa — Total'}</h3></div>
                   {filteredRecap.perStudent.length === 0 ? (<p className="py-12 text-center text-sm text-slate-500">{isKwaru ? 'Belum ada data jamaah' : 'Belum ada data siswa'}</p>) : (
@@ -704,15 +710,29 @@ export function RecapPage() {
               ) : (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-soft">
                   <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3">
-                    <button type="button" onClick={() => setKasBaruMonth((m) => m.month === 1 ? { year: m.year - 1, month: 12 } : { year: m.year, month: m.month - 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
-                    <p className="text-sm font-semibold text-slate-900">{monthShortNames[kasBaruMonth.month - 1]} {kasBaruMonth.year}</p>
-                    <button type="button" onClick={() => setKasBaruMonth((m) => m.month === 12 ? { year: m.year + 1, month: 1 } : { year: m.year, month: m.month + 1 })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
+                    <button type="button" onClick={() => setKasBaruMonth((m) => {
+                      if (isKwaru && contributionFilter === 'pisangisasi') return { year: m.year - 1, month: 1 };
+                      if (isKwaru && contributionFilter === 'triwulan-jamaah') {
+                        const prev = new Date(m.year, m.month - 4, 1);
+                        return { year: prev.getFullYear(), month: prev.getMonth() + 1 };
+                      }
+                      return m.month === 1 ? { year: m.year - 1, month: 12 } : { year: m.year, month: m.month - 1 };
+                    })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
+                    <p className="text-sm font-semibold text-slate-900">{isKwaru && contributionFilter === 'pisangisasi' ? kasBaruMonth.year : isKwaru && contributionFilter === 'triwulan-jamaah' ? `TW ${Math.floor((kasBaruMonth.month - 1) / 3) + 1} - ${kasBaruMonth.year}` : `${monthShortNames[kasBaruMonth.month - 1]} ${kasBaruMonth.year}`}</p>
+                    <button type="button" onClick={() => setKasBaruMonth((m) => {
+                      if (isKwaru && contributionFilter === 'pisangisasi') return { year: m.year + 1, month: 1 };
+                      if (isKwaru && contributionFilter === 'triwulan-jamaah') {
+                        const next = new Date(m.year, m.month + 2, 1);
+                        return { year: next.getFullYear(), month: next.getMonth() + 1 };
+                      }
+                      return m.month === 12 ? { year: m.year + 1, month: 1 } : { year: m.year, month: m.month + 1 };
+                    })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
                   </div>
                   {kasBaruBulananLoading ? (<p className="py-12 text-center text-sm text-slate-500">Memuat...</p>) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th><th className="px-4 py-3 font-medium">Hari Bayar</th><th className="px-4 py-3 font-medium">Total</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{filteredKasBaruBulanan.map((row, index) => (<tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{index + 1}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td><td className="px-4 py-3 text-slate-600">{row.paidDays}</td><td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(row.total)}</td></tr>))}</tbody>
+                        <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-medium">No</th><th className="px-4 py-3 font-medium">Nama</th>{!isKwaru && <th className="px-4 py-3 font-medium">Hari Bayar</th>}<th className="px-4 py-3 font-medium">Nominal</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">{filteredKasBaruBulanan.map((row, index) => (<tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}><td className="px-4 py-3 text-slate-500">{index + 1}</td><td className="truncate px-4 py-3 font-medium text-slate-900">{row.name}</td>{!isKwaru && <td className="px-4 py-3 text-slate-600">{row.paidDays}</td>}<td className="truncate px-4 py-3 font-semibold text-brand-700">{formatCurrency(row.total)}</td></tr>))}</tbody>
                       </table>
                     </div>
                   )}

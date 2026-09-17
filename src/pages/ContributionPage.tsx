@@ -259,6 +259,14 @@ export function ContributionPage() {
     removeContribution: removeTabunganContribution,
   } = useContributions(contributionType === 'pisangisasi' ? 'pisangisasi' : 'tabungan', { date: tabunganDate });
 
+  useEffect(() => {
+    if (contributionType !== 'pisangisasi') {
+      return;
+    }
+    setTabunganMode('setor');
+    setTabunganDate((prev) => `${new Date(`${prev}T00:00:00`).getFullYear()}-01-01`);
+  }, [contributionType]);
+
   // Sync Tabungan inputs with saved contributions when navigating days
   const tabunganSyncedDateRef = useRef<string | null>(null);
 
@@ -407,6 +415,13 @@ export function ContributionPage() {
       }
     } catch (err) { console.error('Triwulan Jamaah save gagal', err); }
   };
+  const handleTriwulanJamaahSave = async () => {
+    for (const s of studentsFiltered) {
+      await autosaveTriwulanJamaah(s.id, triwulanJamaahNominals[s.id] || '');
+    }
+    await reload();
+  };
+
   // Guru Tabungan logic
   const guruBulananNominal = 50000;
   const [guruBulananNominals, setGuruBulananNominals] = useState<Record<string, string>>({});
@@ -564,6 +579,28 @@ export function ContributionPage() {
     return tabunganBalances.reduce((sum, item) => sum + item.balance, 0);
   }, [tabunganBalances]);
 
+  const handoverKey = contributionType === 'triwulan-jamaah'
+    ? `bgy-handover-triwulan-${triwulanPeriod.year}-tw${triwulanPeriod.triwulan}`
+    : contributionType === 'pisangisasi'
+      ? `bgy-handover-pisangisasi-${new Date(`${tabunganDate}T00:00:00`).getFullYear()}`
+      : '';
+  const [handoverDone, setHandoverDone] = useState(false);
+
+  useEffect(() => {
+    if (!handoverKey) {
+      setHandoverDone(false);
+      return;
+    }
+    setHandoverDone(window.localStorage.getItem(handoverKey) === 'true');
+  }, [handoverKey]);
+
+  const toggleHandoverDone = () => {
+    if (!handoverKey) return;
+    const next = !handoverDone;
+    setHandoverDone(next);
+    window.localStorage.setItem(handoverKey, String(next));
+  };
+
   // Notes: Kas Kelas per minggu (kunci = hari Senin), Tabungan per hari
   const kasKelasNotes = useNotes('kas_kelas', weekDates.senin);
   const tabunganNotes = useNotes('tabungan', tabunganDate);
@@ -683,10 +720,24 @@ export function ContributionPage() {
   };
 
   const handleTabunganPrevDay = () => {
+    if (contributionType === 'pisangisasi') {
+      setTabunganDate((prev) => {
+        const year = new Date(`${prev}T00:00:00`).getFullYear() - 1;
+        return `${year}-01-01`;
+      });
+      return;
+    }
     setTabunganDate((prev) => shiftIsoDate(prev, -1) || todayIsoDate());
   };
 
   const handleTabunganNextDay = () => {
+    if (contributionType === 'pisangisasi') {
+      setTabunganDate((prev) => {
+        const year = new Date(`${prev}T00:00:00`).getFullYear() + 1;
+        return `${year}-01-01`;
+      });
+      return;
+    }
     setTabunganDate((prev) => shiftIsoDate(prev, 1) || todayIsoDate());
   };
 
@@ -1553,6 +1604,16 @@ export function ContributionPage() {
                 <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
               </div>
               <p className="mt-1 text-center text-xs text-slate-400">{triwulanPeriod.triwulan === 1 ? 'Jan - Mar' : triwulanPeriod.triwulan === 2 ? 'Apr - Jun' : triwulanPeriod.triwulan === 3 ? 'Jul - Sep' : 'Okt - Des'}</p>
+              <button
+                type="button"
+                onClick={toggleHandoverDone}
+                className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
+                  handoverDone ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700'
+                }`}
+              >
+                <Check className="h-4 w-4" strokeWidth={3} />
+                {handoverDone ? 'Sudah diserahkan' : 'Tandai diserahkan'}
+              </button>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               {triwulanJamaahLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada jamaah terdaftar.</p>) : (
@@ -1574,6 +1635,7 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(triwulanJamaahStats.total)}</p></div>
               </div>
             </div>
+            <button type="button" onClick={handleTriwulanJamaahSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
@@ -1582,7 +1644,7 @@ export function ContributionPage() {
         {(contributionType === 'tabungan' || contributionType === 'pisangisasi') && (
           <>
             <div className="rounded-2xl bg-white p-4 shadow-soft">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Total Tabungan Kelas</p>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{contributionType === 'pisangisasi' ? 'Total Pisangisasi' : 'Total Tabungan Kelas'}</p>
               <p className="mt-1 text-2xl font-semibold text-brand-700">{formatCurrency(totalTabungan)}</p>
             </div>
 
@@ -1596,7 +1658,7 @@ export function ContributionPage() {
                   <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
                 <p className="text-sm font-medium text-slate-700">
-                  {formatWeekday(tabunganDate)}, {formatDisplayDate(tabunganDate)}
+                  {contributionType === 'pisangisasi' ? new Date(`${tabunganDate}T00:00:00`).getFullYear() : `${formatWeekday(tabunganDate)}, ${formatDisplayDate(tabunganDate)}`}
                 </p>
                 <button
                   type="button"
@@ -1606,6 +1668,18 @@ export function ContributionPage() {
                   <ChevronRight className="h-5 w-5" strokeWidth={2} />
                 </button>
               </div>
+              {contributionType === 'pisangisasi' ? (
+                <button
+                  type="button"
+                  onClick={toggleHandoverDone}
+                  className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
+                    handoverDone ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  <Check className="h-4 w-4" strokeWidth={3} />
+                  {handoverDone ? 'Sudah diserahkan' : 'Tandai diserahkan'}
+                </button>
+              ) : (
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -1630,6 +1704,7 @@ export function ContributionPage() {
                   Tarik
                 </button>
               </div>
+              )}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
@@ -1648,15 +1723,17 @@ export function ContributionPage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-slate-900">{student.name}</p>
                             <div className="mt-0.5 flex items-center gap-1.5">
-                              <p className="text-xs text-slate-500">Saldo: {formatCurrency(balance)}</p>
-                              <button
-                                type="button"
-                                onClick={() => handleEditSaldoOpen({ id: student.id, name: student.name })}
-                                className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                aria-label={`Edit saldo ${student.name}`}
-                              >
-                                <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
-                              </button>
+                              <p className="text-xs text-slate-500">{contributionType === 'pisangisasi' ? 'Total' : 'Saldo'}: {formatCurrency(balance)}</p>
+                              {contributionType !== 'pisangisasi' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditSaldoOpen({ id: student.id, name: student.name })}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  aria-label={`Edit saldo ${student.name}`}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" strokeWidth={2} />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <NominalStepper
@@ -1664,7 +1741,7 @@ export function ContributionPage() {
                             onChange={(value) => handleTabunganChange(student.id, value)}
                           />
                         </div>
-                        {tabunganMode === 'tarik' && hasNominal && (
+                        {contributionType !== 'pisangisasi' && tabunganMode === 'tarik' && hasNominal && (
                           <input
                             type="text"
                             placeholder="Buat apa? cth: beli buku"
@@ -1710,13 +1787,13 @@ export function ContributionPage() {
               </div>
             </div>
 
-            <NotesSection
+            {contributionType !== 'pisangisasi' && <NotesSection
               notes={tabunganNotes.notes}
               loading={tabunganNotes.loading}
               onAdd={tabunganNotes.addNote}
               onUpdate={tabunganNotes.updateNote}
               onDelete={tabunganNotes.removeNote}
-            />
+            />}
           </>
         )}
       </div>
