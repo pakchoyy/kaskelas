@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Save, Edit2, ChevronDown } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Save, Edit2, ChevronDown, Search } from 'lucide-react';
 import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
 import { NominalStepper } from '../components/NominalStepper';
@@ -133,19 +133,24 @@ export function ContributionPage() {
   // Filter blok (Etan/Kulon) - hanya untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
+  const [studentSearch, setStudentSearch] = useState('');
 
   const studentsFiltered = useMemo(() => {
     let filtered = sortByName(students);
+    const query = studentSearch.trim().toLowerCase();
     // Filter blok hanya untuk kwaru
     if (isKwaru && blokFilter !== 'semua') {
       filtered = filtered.filter((s) => s.blok === blokFilter);
+    }
+    if (query) {
+      filtered = filtered.filter((s) => s.name.toLowerCase().includes(query));
     }
     // Filter huruf
     if (hurufFilter !== 'semua') {
       filtered = filtered.filter((s) => matchesLetterFilter(s.name, hurufFilter));
     }
     return filtered;
-  }, [students, blokFilter, hurufFilter]);
+  }, [students, blokFilter, studentSearch, hurufFilter]);
 
   useEffect(() => {
     if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'ibu-kompor' : 'tabungan-guru-bulanan');
@@ -1001,6 +1006,16 @@ export function ContributionPage() {
         {/* Filter Blok & Huruf - hanya kwaru + siswa */}
         {mode === 'siswa' && isKwaru && (
           <div className="space-y-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2} />
+              <input
+                type="search"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                placeholder="Cari jamaah"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
             {/* Filter Blok - hanya untuk kwaru */}
             {isKwaru && (
               <div className="flex gap-2">
@@ -1768,6 +1783,7 @@ export function ContributionPage() {
                           <NominalStepper
                             value={tabunganNominals[student.id] || ''}
                             onChange={(value) => handleTabunganChange(student.id, value)}
+                            step={contributionType === 'pisangisasi' ? 10000 : 1000}
                           />
                         </div>
                         {contributionType !== 'pisangisasi' && tabunganMode === 'tarik' && hasNominal && (
