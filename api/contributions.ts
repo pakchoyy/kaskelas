@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, queryOne } from './db.js';
-import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, parseQueryParamInt, isValidDate } from './utils.js';
-import type { Contribution, ContributionType } from './types.js';
+import { query, queryOne } from '../server/db.js';
+import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, parseQueryParamInt, isValidDate } from '../server/utils.js';
+import type { Contribution, ContributionType } from '../server/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

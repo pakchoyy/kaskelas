@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { queryOne } from './db.js';
-import { sendSuccess, sendError, handleError, createId, parseQueryParam } from './utils.js';
+import { queryOne } from '../server/db.js';
+import { sendSuccess, sendError, handleError, createId, parseQueryParam } from '../server/utils.js';
 
 type HandoverMarker = {
   id: string;

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { queryOne } from './db.js';
-import { sendSuccess, sendError, handleError, createId, parseQueryParam } from './utils.js';
-import type { AmalJumatMarker } from './types.js';
+import { queryOne } from '../server/db.js';
+import { sendSuccess, sendError, handleError, createId, parseQueryParam } from '../server/utils.js';
+import type { AmalJumatMarker } from '../server/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
