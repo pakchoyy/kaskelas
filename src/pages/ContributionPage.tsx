@@ -371,6 +371,7 @@ export function ContributionPage() {
 
   // Triwulan Jamaah logic
   const [triwulanJamaahNominals, setTriwulanJamaahNominals] = useState<Record<string, string>>({});
+  const [triwulanJamaahSaving, setTriwulanJamaahSaving] = useState(false);
   const triwulanPeriod = useMemo(() => {
     const triwulan = Math.floor(monthInfo.month / 3) + 1;
     return { triwulan, year: monthInfo.year };
@@ -381,6 +382,7 @@ export function ContributionPage() {
     updateContribution: updateTriwulanJamaah,
     removeContribution: removeTriwulanJamaah,
     loading: triwulanJamaahLoading,
+    loadingRef: triwulanJamaahLoadingRef,
   } = useContributions('triwulan-jamaah', {
     periodMonth: triwulanPeriod.triwulan,
     periodYear: triwulanPeriod.year,
@@ -403,7 +405,7 @@ export function ContributionPage() {
     triwulanJamaahTimeoutRef.current[studentId] = window.setTimeout(() => autosaveTriwulanJamaah(studentId, value), 600);
   };
   const autosaveTriwulanJamaah = async (studentId: string, value: string) => {
-    if (triwulanJamaahLoading) return;
+    if (triwulanJamaahLoadingRef.current) return;
     const nominal = parseInt(value, 10) || 0;
     const existing = triwulanJamaahRecords.find((c) => c.studentId === studentId);
     try {
@@ -416,10 +418,15 @@ export function ContributionPage() {
     } catch (err) { console.error('Triwulan Jamaah save gagal', err); }
   };
   const handleTriwulanJamaahSave = async () => {
-    for (const s of studentsFiltered) {
-      await autosaveTriwulanJamaah(s.id, triwulanJamaahNominals[s.id] || '');
+    setTriwulanJamaahSaving(true);
+    try {
+      for (const s of studentsFiltered) {
+        await autosaveTriwulanJamaah(s.id, triwulanJamaahNominals[s.id] || '');
+      }
+      await reload();
+    } finally {
+      setTriwulanJamaahSaving(false);
     }
-    await reload();
   };
 
   // Guru Tabungan logic
@@ -1656,7 +1663,7 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(triwulanJamaahStats.total)}</p></div>
               </div>
             </div>
-            <button type="button" onClick={handleTriwulanJamaahSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
+            <button type="button" onClick={handleTriwulanJamaahSave} disabled={triwulanJamaahSaving} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white disabled:opacity-70"><Save className="h-5 w-5" strokeWidth={2} />{triwulanJamaahSaving ? 'Menyimpan...' : 'Simpan'}</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
         )}
