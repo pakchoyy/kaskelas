@@ -92,7 +92,7 @@ export function DashboardPage() {
           </button>
         </div>
 
-        <InfoCard title="Saldo Kas" value={formatCurrency(metrics.saldo)} tone="brand" />
+        <InfoCard title={isKwaru && mode === 'siswa' ? 'Total Sodaqoh' : 'Saldo Kas'} value={formatCurrency(metrics.saldo)} tone="brand" />
 
         <div className="grid grid-cols-2 gap-3">
           <InfoCard title={mode === 'guru' ? (isKwaru ? 'Ibu-ibu Aktif' : 'Guru Aktif') : (isKwaru ? 'Jamaah Aktif' : 'Siswa Aktif')} value={metrics.totalStudents.toString()} />
@@ -101,6 +101,12 @@ export function DashboardPage() {
               <InfoCard title="Tabungan Bulanan" value={formatCurrency((metrics as any).totalTabunganGuruBulanan || 0)} />
               <InfoCard title={isKwaru ? 'Triwulan' : 'Tabungan TW'} value={formatCurrency((metrics as any).totalTabunganGuruTw || 0)} />
               <InfoCard title="Pengeluaran" value={formatCurrency(metrics.totalPengeluaran)} />
+            </>
+          ) : isKwaru ? (
+            <>
+              <InfoCard title="Pisangisasi Tahun Ini" value={formatCurrency(metrics.totalTabungan)} />
+              <InfoCard title="Triwulan Ini" value={formatCurrency(metrics.totalPemasukanLain)} />
+              <InfoCard title="Total Sodaqoh" value={formatCurrency(metrics.totalKasMasuk)} />
             </>
           ) : (
             <>
@@ -128,6 +134,8 @@ export function DashboardPage() {
                     <p className="truncate text-xs text-slate-500">
                       {item.type === 'Kas'
                         ? `${item.count} ${isKwaru ? 'orang' : 'siswa'} bayar`
+                        : item.type === 'Pisangisasi' || item.type === 'Triwulan'
+                          ? `${item.count} jamaah bayar`
                         : item.note}
                     </p>
                   </div>
@@ -140,7 +148,7 @@ export function DashboardPage() {
                       {item.type === 'Pengeluaran' ? '-' : '+'}{formatCurrency(item.amount)}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {item.type === 'Kas' ? 'Kas Kelas' : item.type === 'Pemasukan' ? 'Pemasukan lain' : 'Pengeluaran'}
+                      {item.type === 'Kas' ? (isKwaru ? 'Sodaqoh' : 'Kas Kelas') : item.type === 'Pisangisasi' || item.type === 'Triwulan' ? item.type : item.type === 'Pemasukan' ? 'Pemasukan lain' : 'Pengeluaran'}
                     </p>
                   </div>
                 </li>

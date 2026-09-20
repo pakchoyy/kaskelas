@@ -37,8 +37,8 @@ const contributionTypes = [
 ];
 
 const contributionTypesKwaruSiswa = [
-  { value: 'pisangisasi' as const, label: 'Pisangisasi' },
   { value: 'triwulan-jamaah' as const, label: 'Triwulan' },
+  { value: 'pisangisasi' as const, label: 'Pisangisasi' },
 ];
 
 const contributionTypesGuru = [
@@ -124,7 +124,7 @@ export function ContributionPage() {
   
   const [contributionType, setContributionType] = useState<ContributionType>(() => {
     if (mode === 'guru') return 'tabungan-guru-bulanan';
-    if (isKwaru) return 'pisangisasi';
+    if (isKwaru) return 'triwulan-jamaah';
     return 'kas-kelas';
   });
   const [anchorDate, setAnchorDate] = useState(todayIsoDate());
@@ -154,7 +154,7 @@ export function ContributionPage() {
 
   useEffect(() => {
     if (mode === 'guru' && !['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'ibu-kompor' : 'tabungan-guru-bulanan');
-    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'pisangisasi' : 'kas-kelas');
+    else if (mode === 'siswa' && ['tabungan-guru-bulanan','tabungan-guru-tw','ibu-kompor','ibu-kas'].includes(contributionType)) setContributionType(isKwaru ? 'triwulan-jamaah' : 'kas-kelas');
   }, [mode, contributionType]);
   
   // State untuk edit nominal Kas Kelas

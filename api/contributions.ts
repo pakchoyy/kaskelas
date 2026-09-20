@@ -216,6 +216,51 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
   const now = new Date().toISOString();
   
   try {
+    if (contributionType === 'pisangisasi') {
+      const existingPisangisasi = await queryOne<Contribution>(
+        `SELECT
+          id,
+          student_id as "studentId",
+          contribution_type as "contributionType",
+          date::text as date,
+          nominal,
+          period_month as "periodMonth",
+          period_year as "periodYear",
+          note,
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+         FROM contributions
+         WHERE student_id = $1
+           AND contribution_type = 'pisangisasi'
+           AND date = $2::date
+         ORDER BY updated_at DESC
+         LIMIT 1`,
+        [studentId, date]
+      );
+
+      if (existingPisangisasi) {
+        const contribution = await queryOne<Contribution>(
+          `UPDATE contributions
+           SET nominal = $1, note = $2, updated_at = $3
+           WHERE id = $4
+           RETURNING
+            id,
+            student_id as "studentId",
+            contribution_type as "contributionType",
+            date::text as date,
+            nominal,
+            period_month as "periodMonth",
+            period_year as "periodYear",
+            note,
+            created_at as "createdAt",
+            updated_at as "updatedAt"`,
+          [nominal, noteValue, now, existingPisangisasi.id]
+        );
+
+        return sendSuccess(res, contribution, 'Contribution updated successfully');
+      }
+    }
+
     const contribution = await queryOne<Contribution>(
       `INSERT INTO contributions (
         id, student_id, contribution_type, date, nominal, 
