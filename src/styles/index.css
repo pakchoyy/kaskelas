@@ -33,3 +33,151 @@ select {
 * {
   box-sizing: border-box;
 }
+
+.print-report {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-report,
+  .print-report * {
+    visibility: visible;
+  }
+
+  .print-report {
+    display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #0f172a;
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+  }
+
+  .print-report__header {
+    border-bottom: 2px solid #0f766e;
+    padding-bottom: 14px;
+  }
+
+  .print-report__eyebrow {
+    margin: 0 0 6px;
+    color: #0f766e;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .print-report h1 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .print-report__header p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: #475569;
+  }
+
+  .print-report__summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .print-report__summary div {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .print-report__summary span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+  }
+
+  .print-report__summary strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
+  .print-report__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .print-report__table th,
+  .print-report__table td {
+    border: 1px solid #cbd5e1;
+    padding: 8px;
+    text-align: left;
+  }
+
+  .print-report__table th {
+    background: #f1f5f9;
+    font-weight: 700;
+  }
+
+  .print-report__table td:first-child {
+    width: 42px;
+    text-align: center;
+  }
+
+  .print-report__table td:last-child,
+  .print-report__table th:last-child {
+    text-align: right;
+  }
+
+  .print-report__table tfoot td {
+    font-weight: 700;
+  }
+
+  .print-report__signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 36px;
+    page-break-inside: avoid;
+  }
+
+  .print-report__signatures div {
+    min-height: 88px;
+    border-top: 1px solid transparent;
+    text-align: center;
+  }
+
+  .print-report__signatures p {
+    margin: 0 0 64px;
+    font-size: 12px;
+  }
+
+  .print-report__signatures strong {
+    display: block;
+    border-top: 1px solid #94a3b8;
+    padding-top: 6px;
+    font-size: 12px;
+  }
+}

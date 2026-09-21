@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { InfoCard } from '../components/InfoCard';
 import { PageShell } from '../components/PageShell';
 import { formatCurrency } from '../lib/format';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { recapApi, contributionsApi, type RecapData } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { useAppMode } from '../hooks/useAppMode';
@@ -95,6 +95,28 @@ export function RecapPage() {
     const allowedIds = new Set(filteredRecap.perStudent.map((student) => student.id));
     return kasBaruBulanan.filter((row) => allowedIds.has(row.id));
   }, [filteredRecap, kasBaruBulanan]);
+
+  const reportTitle = isKwaru ? 'Laporan Sodaqoh Jamaah' : mode === 'guru' ? 'Laporan Rekap Guru' : 'Laporan Rekap Kelas';
+  const reportTypeLabel =
+    contributionFilter === 'triwulan-jamaah' ? 'Triwulan' :
+    contributionFilter === 'pisangisasi' ? 'Pisangisasi' :
+    contributionFilter === 'tabungan' ? 'Tabungan' :
+    contributionFilter === 'amal-jumat' ? 'Amal Jumat' :
+    contributionFilter === 'paguyuban-ngaji' ? 'Paguyuban Ngaji' :
+    contributionFilter === 'lks' ? 'LKS' :
+    contributionFilter === 'tabungan-guru-bulanan' ? 'Tabungan Bulanan' :
+    contributionFilter === 'tabungan-guru-tw' ? 'Tabungan TW' :
+    'Kas Kelas';
+  const reportPeriodLabel = isKwaru && contributionFilter === 'pisangisasi'
+    ? String(kasBaruMonth.year)
+    : isKwaru && contributionFilter === 'triwulan-jamaah'
+      ? `TW ${Math.floor((kasBaruMonth.month - 1) / 3) + 1} - ${kasBaruMonth.year}`
+      : `${monthShortNames[kasBaruMonth.month - 1]} ${kasBaruMonth.year}`;
+  const reportRows = isKwaru && mode !== 'guru' && (contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah')
+    ? filteredKasBaruBulanan.map((row, index) => ({ number: index + 1, name: row.name, total: row.total }))
+    : (filteredRecap?.perStudent ?? []).map((row, index) => ({ number: index + 1, name: row.name, total: row.total }));
+  const reportTotal = reportRows.reduce((sum, row) => sum + row.total, 0);
+  const printedAt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short' }).format(new Date());
 
   useEffect(() => {
     const loadRecap = async () => {
@@ -286,11 +308,11 @@ export function RecapPage() {
       <div className="grid gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-<button
-            type="button"
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
-          >
+            <button
+              type="button"
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 text-sm font-semibold text-brand-900 shadow-soft"
+            >
               <span>
                 {contributionFilter === 'semua' && 'Semua Jenis'}
                 {contributionFilter === 'kas-kelas' && 'Kas Kelas'}
@@ -339,7 +361,82 @@ export function RecapPage() {
           >
             {refreshState === 'loading' ? 'Memuat...' : 'Muat Ulang'}
           </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-soft"
+          >
+            <Printer className="h-4 w-4" strokeWidth={2} />
+            PDF
+          </button>
         </div>
+
+        <section className="print-report">
+          <div className="print-report__header">
+            <p className="print-report__eyebrow">Laporan Resmi</p>
+            <h1>{reportTitle}</h1>
+            <p>{reportTypeLabel} • {reportPeriodLabel}</p>
+            <p>Dicetak: {printedAt}</p>
+          </div>
+
+          <div className="print-report__summary">
+            <div>
+              <span>Jumlah Data</span>
+              <strong>{reportRows.length} jamaah</strong>
+            </div>
+            <div>
+              <span>Total Nominal</span>
+              <strong>{formatCurrency(reportTotal)}</strong>
+            </div>
+            {isKwaru && mode !== 'guru' && (
+              <div>
+                <span>Blok</span>
+                <strong>{blokFilter === 'semua' ? 'Semua Blok' : blokFilter === 'etan' ? 'Etan' : blokFilter === 'kulon' ? 'Kulon' : 'Lainnya'}</strong>
+              </div>
+            )}
+          </div>
+
+          <table className="print-report__table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama</th>
+                <th>Nominal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportRows.map((row) => (
+                <tr key={`${row.number}-${row.name}`}>
+                  <td>{row.number}</td>
+                  <td>{row.name}</td>
+                  <td>{formatCurrency(row.total)}</td>
+                </tr>
+              ))}
+              {reportRows.length === 0 && (
+                <tr>
+                  <td colSpan={3}>Belum ada data untuk laporan ini.</td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2}>Total</td>
+                <td>{formatCurrency(reportTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div className="print-report__signatures">
+            <div>
+              <p>Mengetahui,</p>
+              <strong>Pengurus</strong>
+            </div>
+            <div>
+              <p>Dibuat oleh,</p>
+              <strong>Bendahara</strong>
+            </div>
+          </div>
+        </section>
 
         {refreshMessage && (
           <div
