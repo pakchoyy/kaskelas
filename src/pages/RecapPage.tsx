@@ -10,6 +10,7 @@ import { isKwaru } from '../lib/appScope';
 import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const triwulanRanges = ['Januari - Maret', 'April - Juni', 'Juli - September', 'Oktober - Desember'];
 
 function formatLunasRange(months: number[]): string {
   const sorted = [...new Set(months)].sort((a, b) => a - b);
@@ -96,7 +97,11 @@ export function RecapPage() {
     return kasBaruBulanan.filter((row) => allowedIds.has(row.id));
   }, [filteredRecap, kasBaruBulanan]);
 
-  const reportTitle = isKwaru ? 'Laporan Sodaqoh Jamaah' : mode === 'guru' ? 'Laporan Rekap Guru' : 'Laporan Rekap Kelas';
+  const reportTitle = isKwaru && contributionFilter === 'triwulan-jamaah'
+    ? 'Rekap Sodaqoh Tri Wulan Kelompok Waru'
+    : isKwaru && contributionFilter === 'pisangisasi'
+      ? 'Rekap Sodaqoh Pisangisasi Kelompok Waru'
+      : mode === 'guru' ? 'Rekap Guru' : 'Rekap Kelas';
   const reportTypeLabel =
     contributionFilter === 'triwulan-jamaah' ? 'Triwulan' :
     contributionFilter === 'pisangisasi' ? 'Pisangisasi' :
@@ -108,9 +113,9 @@ export function RecapPage() {
     contributionFilter === 'tabungan-guru-tw' ? 'Tabungan TW' :
     'Kas Kelas';
   const reportPeriodLabel = isKwaru && contributionFilter === 'pisangisasi'
-    ? String(kasBaruMonth.year)
+    ? `Tahun ${kasBaruMonth.year}`
     : isKwaru && contributionFilter === 'triwulan-jamaah'
-      ? `TW ${Math.floor((kasBaruMonth.month - 1) / 3) + 1} - ${kasBaruMonth.year}`
+      ? `TW ${Math.floor((kasBaruMonth.month - 1) / 3) + 1} ${kasBaruMonth.year} (${triwulanRanges[Math.floor((kasBaruMonth.month - 1) / 3)]})`
       : `${monthShortNames[kasBaruMonth.month - 1]} ${kasBaruMonth.year}`;
   const reportRows = isKwaru && mode !== 'guru' && (contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah')
     ? filteredKasBaruBulanan.map((row, index) => ({ number: index + 1, name: row.name, total: row.total }))
@@ -373,27 +378,9 @@ export function RecapPage() {
 
         <section className="print-report">
           <div className="print-report__header">
-            <p className="print-report__eyebrow">Laporan Resmi</p>
             <h1>{reportTitle}</h1>
-            <p>{reportTypeLabel} • {reportPeriodLabel}</p>
-            <p>Dicetak: {printedAt}</p>
-          </div>
-
-          <div className="print-report__summary">
-            <div>
-              <span>Jumlah Data</span>
-              <strong>{reportRows.length} jamaah</strong>
-            </div>
-            <div>
-              <span>Total Nominal</span>
-              <strong>{formatCurrency(reportTotal)}</strong>
-            </div>
-            {isKwaru && mode !== 'guru' && (
-              <div>
-                <span>Blok</span>
-                <strong>{blokFilter === 'semua' ? 'Semua Blok' : blokFilter === 'etan' ? 'Etan' : blokFilter === 'kulon' ? 'Kulon' : 'Lainnya'}</strong>
-              </div>
-            )}
+            <p>{reportPeriodLabel}</p>
+            <p>Dicetak {printedAt}</p>
           </div>
 
           <table className="print-report__table">
@@ -429,11 +416,7 @@ export function RecapPage() {
           <div className="print-report__signatures">
             <div>
               <p>Mengetahui,</p>
-              <strong>Pengurus</strong>
-            </div>
-            <div>
-              <p>Dibuat oleh,</p>
-              <strong>Bendahara</strong>
+              <strong>PJTK Kelompok Waru</strong>
             </div>
           </div>
         </section>
@@ -466,6 +449,10 @@ export function RecapPage() {
             <div className="col-span-2">
               <InfoCard title="Saldo Tabungan Terkini" value={formatCurrency(recap.totalTabunganMasuk - recap.totalTabunganPenarikan)} tone="brand" />
             </div>
+          </div>
+        ) : isKwaru ? (
+          <div className="grid grid-cols-1 gap-3">
+            <InfoCard title={`Total ${reportTypeLabel}`} value={formatCurrency(reportTotal)} tone="brand" />
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
