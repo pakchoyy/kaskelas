@@ -8,6 +8,8 @@ import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { useAppMode } from '../hooks/useAppMode';
 import { isKwaru } from '../lib/appScope';
 import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
+import { NotesSection } from '../components/NotesSection';
+import { useNotes } from '../hooks/useNotes';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const triwulanRanges = ['Januari - Maret', 'April - Juni', 'Juli - September', 'Oktober - Desember'];
@@ -78,6 +80,9 @@ export function RecapPage() {
   // Filter blok & huruf untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
+
+  // Catatan per jenis rekap (tersimpan di bawah halaman, tidak ikut dicetak)
+  const rekapNotes = useNotes('rekap', `${mode}:${contributionFilter}`);
 
   const filteredRecap = useMemo(() => {
     if (!recap) return null;
@@ -837,6 +842,14 @@ export function RecapPage() {
             </div>
           )
         )}
+
+        <NotesSection
+          notes={rekapNotes.notes}
+          loading={rekapNotes.loading}
+          onAdd={rekapNotes.addNote}
+          onUpdate={rekapNotes.updateNote}
+          onDelete={rekapNotes.removeNote}
+        />
       </div>
     </PageShell>
   );
