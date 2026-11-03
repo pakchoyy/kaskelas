@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { notesApi, type Note } from '../services/api';
+import { notesApi, type Note, type PinjamanDetails } from '../services/api';
 
 export function useNotes(scope: string, periodKey: string) {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -30,13 +30,13 @@ export function useNotes(scope: string, periodKey: string) {
   }, [loadNotes]);
 
   const addNote = useCallback(
-    async (text: string): Promise<boolean> => {
+    async (text: string, details?: PinjamanDetails | null): Promise<boolean> => {
       const trimmed = text.trim();
       if (!trimmed) {
         return false;
       }
       try {
-        const note = await notesApi.create({ scope, periodKey, text: trimmed });
+        const note = await notesApi.create({ scope, periodKey, text: trimmed, details: details ?? null });
         setNotes(current => [...current, note]);
         return true;
       } catch (err) {
@@ -47,13 +47,13 @@ export function useNotes(scope: string, periodKey: string) {
     [scope, periodKey],
   );
 
-  const updateNote = useCallback(async (id: string, text: string): Promise<boolean> => {
+  const updateNote = useCallback(async (id: string, text: string, details?: PinjamanDetails | null): Promise<boolean> => {
     const trimmed = text.trim();
     if (!trimmed) {
       return false;
     }
     try {
-      const updated = await notesApi.update(id, { text: trimmed });
+      const updated = await notesApi.update(id, { text: trimmed, details: details ?? null });
       setNotes(current => current.map(n => (n.id === id ? updated : n)));
       return true;
     } catch (err) {

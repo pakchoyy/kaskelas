@@ -61,7 +61,7 @@ async function handleGetNotes(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleCreateNote(req: VercelRequest, res: VercelResponse) {
-  const { scope, periodKey, text } = req.body;
+  const { scope, periodKey, text, details } = req.body;
   
   if (!scope || typeof scope !== 'string' || scope.trim().length === 0) {
     return sendError(res, 'Scope is required');
@@ -79,16 +79,18 @@ async function handleCreateNote(req: VercelRequest, res: VercelResponse) {
   const now = new Date().toISOString();
   
   const note = await queryOne<Note>(
-    `INSERT INTO notes (id, scope, period_key, text, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO notes (id, scope, period_key, text, details, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
      RETURNING 
        id, 
        scope, 
        period_key as "periodKey", 
+ 
        text, 
+       details,
        created_at as "createdAt", 
        updated_at as "updatedAt"`,
-    [id, scope.trim(), periodKey.trim(), text.trim(), now, now]
+    [id, scope.trim(), periodKey.trim(), text.trim(), details ? JSON.stringify(details) : null, now, now]
   );
   
   sendSuccess(res, note, 'Note created successfully');
@@ -96,7 +98,7 @@ async function handleCreateNote(req: VercelRequest, res: VercelResponse) {
 
 async function handleUpdateNote(req: VercelRequest, res: VercelResponse) {
   const id = parseQueryParam(req.query.id);
-  const { text } = req.body;
+  const { text, details } = req.body;
   
   if (!id) {
     return sendError(res, 'Note ID is required');
@@ -110,16 +112,18 @@ async function handleUpdateNote(req: VercelRequest, res: VercelResponse) {
   
   const note = await queryOne<Note>(
     `UPDATE notes
-     SET text = $1, updated_at = $2
-     WHERE id = $3
+     SET text = $1, details = COALESCE($2::jsonb, details), updated_at = $3
+     WHERE id = $4
      RETURNING 
        id, 
        scope, 
        period_key as "periodKey", 
+ 
        text, 
+       details,
        created_at as "createdAt", 
        updated_at as "updatedAt"`,
-    [text.trim(), now, id]
+    [text.trim(), details ? JSON.stringify(details) : null, now, id]
   );
   
   if (!note) {
@@ -143,7 +147,9 @@ async function handleDeleteNote(req: VercelRequest, res: VercelResponse) {
        id, 
        scope, 
        period_key as "periodKey", 
+ 
        text, 
+       details,
        created_at as "createdAt", 
        updated_at as "updatedAt"`,
     [id]

@@ -124,11 +124,20 @@ export type ContributionSetting = {
   updatedAt: string;
 };
 
+export type PinjamanDetails = {
+  tgl: string;
+  nom: number;
+  dari: string;
+  perlu: string;
+  lunas: boolean;
+};
+
 export type Note = {
   id: string;
   scope: string;
   periodKey: string;
   text: string;
+  details?: PinjamanDetails | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -322,14 +331,14 @@ export const notesApi = {
     return fetchApi<Note[]>(`/notes${query}`);
   },
   
-  async create(data: { scope: string; periodKey: string; text: string }): Promise<Note> {
+  async create(data: { scope: string; periodKey: string; text: string; details?: PinjamanDetails | null }): Promise<Note> {
     return fetchApi<Note>('/notes', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
   
-  async update(id: string, data: { text: string }): Promise<Note> {
+  async update(id: string, data: { text: string; details?: PinjamanDetails | null }): Promise<Note> {
     return fetchApi<Note>(`/notes?id=${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

@@ -8,8 +8,9 @@ import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { useAppMode } from '../hooks/useAppMode';
 import { isKwaru } from '../lib/appScope';
 import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
-import { NotesSection } from '../components/NotesSection';
+import { PinjamanNotesSection } from '../components/PinjamanNotesSection';
 import { useNotes } from '../hooks/useNotes';
+import type { Note, PinjamanDetails } from '../services/api';
 
 const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const triwulanRanges = ['Januari - Maret', 'April - Juni', 'Juli - September', 'Oktober - Desember'];
@@ -81,8 +82,10 @@ export function RecapPage() {
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
   const [hurufFilter, setHurufFilter] = useState<LetterFilter>('semua');
 
-  // Catatan per jenis rekap (tersimpan di bawah halaman, tidak ikut dicetak)
-  const rekapNotes = useNotes('rekap', `${mode}:${contributionFilter}`);
+  // Catatan pinjaman (di bawah halaman, tidak ikut dicetak)
+  const rekapNotes = useNotes('pinjaman', 'all');
+  const toggleLunas = (note: Note, lunas: boolean) =>
+    rekapNotes.updateNote(note.id, note.text, { ...(note.details as PinjamanDetails), lunas });
 
   const filteredRecap = useMemo(() => {
     if (!recap) return null;
@@ -843,11 +846,11 @@ export function RecapPage() {
           )
         )}
 
-        <NotesSection
+        <PinjamanNotesSection
           notes={rekapNotes.notes}
           loading={rekapNotes.loading}
           onAdd={rekapNotes.addNote}
-          onUpdate={rekapNotes.updateNote}
+          onToggleLunas={toggleLunas}
           onDelete={rekapNotes.removeNote}
         />
       </div>

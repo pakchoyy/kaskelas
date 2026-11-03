@@ -47,11 +47,20 @@ export type ContributionSetting = {
   updatedAt: string;
 };
 
+export type PinjamanDetails = {
+  tgl: string;
+  nom: number;
+  dari: string;
+  perlu: string;
+  lunas: boolean;
+};
+
 export type Note = {
   id: string;
   scope: string;
   periodKey: string;
   text: string;
+  details?: PinjamanDetails | null;
   createdAt: string;
   updatedAt: string;
 };
