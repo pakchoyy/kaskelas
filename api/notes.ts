@@ -33,6 +33,7 @@ async function handleGetNotes(req: VercelRequest, res: VercelResponse) {
       scope, 
       period_key as "periodKey", 
       text, 
+      details,
       created_at as "createdAt", 
       updated_at as "updatedAt"
     FROM notes
