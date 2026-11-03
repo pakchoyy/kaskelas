@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { InfoCard } from '../components/InfoCard';
 import { PageShell } from '../components/PageShell';
 import { formatCurrency } from '../lib/format';
@@ -40,11 +40,26 @@ type ContributionFilter = 'semua' | 'kas-kelas' | 'tabungan' | 'amal-jumat' | 'p
 
 type KasView = 'per-siswa' | 'total-kas';
 
+const guruFilters: ContributionFilter[] = ['tabungan-guru-bulanan', 'tabungan-guru-tw'];
+const kwaruFilters: ContributionFilter[] = ['pisangisasi', 'triwulan-jamaah'];
+
+// Jenis rekap yang valid untuk mode saat ini, supaya data guru tidak pernah memakai filter siswa
+// (dan sebaliknya) walau state filter belum sempat disesuaikan setelah ganti mode.
+function normalizeFilter(filter: ContributionFilter, mode: 'siswa' | 'guru'): ContributionFilter {
+  if (mode === 'guru') {
+    return guruFilters.includes(filter) ? filter : 'tabungan-guru-bulanan';
+  }
+  if (isKwaru) {
+    return kwaruFilters.includes(filter) ? filter : 'pisangisasi';
+  }
+  return filter === 'semua' || (!guruFilters.includes(filter) && !kwaruFilters.includes(filter)) ? filter : 'kas-kelas';
+}
+
 export function RecapPage() {
   const [refreshMessage, setRefreshMessage] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [contributionFilter, setContributionFilter] = useState<ContributionFilter>('kas-kelas');
+  const [selectedFilter, setContributionFilter] = useState<ContributionFilter>('kas-kelas');
   const { mode } = useAppMode();
   const [kasView, setKasView] = useState<KasView>('per-siswa');
   const [kasViewOpen, setKasViewOpen] = useState(false);
@@ -71,12 +86,15 @@ export function RecapPage() {
   const [guruRecapBulanan, setGuruRecapBulanan] = useState<Array<{ id: string; name: string; total: number }>>([]);
   const [guruRecapBulananLoading, setGuruRecapBulananLoading] = useState(false);
   const [recap, setRecap] = useState<RecapData | null>(null);
+  const loadedModeRef = useRef(mode);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const effectiveContributionFilter: ContributionFilter = isKwaru && mode !== 'guru' && contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah'
-    ? 'pisangisasi'
-    : contributionFilter;
+  const contributionFilter = normalizeFilter(selectedFilter, mode);
+  const effectiveContributionFilter: ContributionFilter = contributionFilter;
+  const pageDescription = mode === 'guru'
+    ? (isKwaru ? 'Rekap tabungan per ibu-ibu.' : 'Rekap tabungan per guru.')
+    : isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.';
 
   // Filter blok & huruf untuk kwaru
   const [blokFilter, setBlokFilter] = useState<'semua' | 'etan' | 'kulon' | 'lainnya'>('semua');
@@ -132,6 +150,14 @@ export function RecapPage() {
   const printedAt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short' }).format(new Date());
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Ganti mode (guru <-> siswa): buang data lama supaya daftar siswa tidak sempat tampil di mode guru
+    if (loadedModeRef.current !== mode) {
+      loadedModeRef.current = mode;
+      setRecap(null);
+    }
+
     const loadRecap = async () => {
       try {
         setLoading(true);
@@ -139,32 +165,29 @@ export function RecapPage() {
         
         const apiType = mapContributionTypeToApi(effectiveContributionFilter === 'semua' ? 'kas-kelas' : effectiveContributionFilter);
         const data = await recapApi.getData(apiType);
+        if (cancelled) return;
         setRecap(data);
       } catch (err) {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Failed to load recap';
         setError(message);
         console.error('Failed to load recap:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadRecap();
-  }, [effectiveContributionFilter]);
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveContributionFilter, mode]);
 
   useEffect(() => {
-    if (mode === 'guru') {
-      if (contributionFilter !== 'tabungan-guru-bulanan' && contributionFilter !== 'tabungan-guru-tw') {
-        setContributionFilter('tabungan-guru-bulanan');
-      }
-    } else if (isKwaru) {
-      if (contributionFilter !== 'pisangisasi' && contributionFilter !== 'triwulan-jamaah') {
-        setContributionFilter('pisangisasi');
-      }
-    } else if (contributionFilter === 'pisangisasi' || contributionFilter === 'triwulan-jamaah' || contributionFilter === 'tabungan-guru-bulanan' || contributionFilter === 'tabungan-guru-tw') {
-      setContributionFilter('kas-kelas');
+    if (selectedFilter !== contributionFilter) {
+      setContributionFilter(contributionFilter === 'semua' ? 'kas-kelas' : contributionFilter);
     }
-  }, [mode, contributionFilter]);
+  }, [selectedFilter, contributionFilter]);
 
   // Tabungan per bulan
   useEffect(() => {
@@ -288,7 +311,7 @@ export function RecapPage() {
 
   if (loading && !recap) {
     return (
-      <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
+      <PageShell title="Rekap" description={pageDescription}>
         <div className="flex items-center justify-center py-12">
           <p className="text-slate-500">Memuat data...</p>
         </div>
@@ -298,7 +321,7 @@ export function RecapPage() {
 
   if (error && !recap) {
     return (
-      <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
+      <PageShell title="Rekap" description={pageDescription}>
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -317,7 +340,7 @@ export function RecapPage() {
   }
 
   return (
-    <PageShell title="Rekap" description={isKwaru ? 'Rekap sodaqoh per jamaah.' : 'Rekap kas per siswa dan total kas kelas.'}>
+    <PageShell title="Rekap" description={pageDescription}>
       <div className="grid gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
