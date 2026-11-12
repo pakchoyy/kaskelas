@@ -4,6 +4,7 @@ import { PageShell } from '../components/PageShell';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate } from '../lib/date';
 import { dashboardApi, type DashboardMetrics } from '../services/api';
+import { APP_DATA_UPDATED_EVENT } from '../lib/events';
 import { useAppMode } from '../hooks/useAppMode';
 import { isKwaru } from '../lib/appScope';
 
@@ -15,26 +16,41 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadMetrics = async () => {
+    let seq = 0;
+    // Layar "Memuat" hanya saat pertama; penyegaran berikutnya diam-diam supaya tidak terasa lag
+    const loadMetrics = async (silent: boolean) => {
+      const mine = ++seq;
       try {
-        setLoading(true);
+        if (!silent) setLoading(true);
         setError(null);
         const [siswaData, guruData] = await Promise.all([
           dashboardApi.getMetrics('siswa'),
           dashboardApi.getMetrics('guru'),
         ]);
+        if (mine !== seq) return; // abaikan jawaban lama
         setMetrics(mode === 'guru' ? guruData : siswaData);
         setMetricsGuru(guruData);
       } catch (err) {
+        if (mine !== seq) return;
         const message = err instanceof Error ? err.message : 'Failed to load dashboard';
-        setError(message);
+        if (!silent) setError(message);
         console.error('Failed to load dashboard:', err);
       } finally {
-        setLoading(false);
+        if (mine === seq && !silent) setLoading(false);
       }
     };
 
-    loadMetrics();
+    loadMetrics(false);
+    // Segarkan saat data diubah di halaman lain atau saat aplikasi dibuka lagi dari latar belakang
+    const refresh = () => loadMetrics(true);
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    window.addEventListener(APP_DATA_UPDATED_EVENT, refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      seq++;
+      window.removeEventListener(APP_DATA_UPDATED_EVENT, refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [mode]);
 
   if (loading) {

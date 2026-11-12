@@ -10,10 +10,22 @@ export function ReloadPrompt() {
     import('virtual:pwa-register').then(({ registerSW }) => {
       if (!mounted) return;
       const update = registerSW({
+        immediate: true,
         onNeedRefresh() {
+          // Pasang versi baru langsung, supaya aplikasi di HP tidak tertahan di versi lama
           setNeedRefresh(true);
+          (update as any)?.(true);
         },
         onOfflineReady() {},
+        onRegisteredSW(_url: string, registration: ServiceWorkerRegistration | undefined) {
+          if (!registration) return;
+          // Cek versi baru tiap 30 menit dan setiap kali aplikasi dibuka lagi
+          const check = () => registration.update().catch(() => {});
+          window.setInterval(check, 30 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') check();
+          });
+        },
       } as any);
       setUpdateSW(() => update as any);
     }).catch(() => {});
