@@ -10,6 +10,9 @@ import { extractFinanceRows, readExcelRows } from '../lib/excel';
 import { isKwaru } from '../lib/appScope';
 import { formatCurrency } from '../lib/format';
 import { formatShortDisplayDate, todayIsoDate } from '../lib/date';
+import { sortByName } from '../lib/nameFilters';
+import { contributionsApi } from '../services/api';
+import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
 
 type FinanceTab = 'Pengeluaran' | 'Pemasukan';
 
@@ -18,6 +21,7 @@ type FinanceFormMode = 'create' | 'edit';
 export function FinancePage() {
   const { mode } = useAppMode();
   const {
+    students: allStudents,
     financeRecords: allFinanceRecords,
     addFinanceTransaction: rawAddFinance,
     updateFinanceTransaction,
@@ -37,6 +41,9 @@ export function FinancePage() {
   const [draftNote, setDraftNote] = useState('');
   const [guruTabunganSource, setGuruTabunganSource] = useState<'bulanan' | 'tw'>('bulanan');
   const [guruKolektif, setGuruKolektif] = useState(true);
+  const [guruPribadiId, setGuruPribadiId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const guruList = useMemo(() => sortByName(allStudents.filter((st) => st.category === 'guru')), [allStudents]);
   const [errorMessage, setErrorMessage] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState('');
@@ -98,8 +105,38 @@ export function FinancePage() {
     setErrorMessage('');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const nominal = Number(draftNominal);
+    // Tarik Pribadi: dicatat sebagai penarikan milik satu guru, mengurangi tabungan guru itu saja
+    if (mode === 'guru' && draftType === 'Pengeluaran' && !guruKolektif && formMode === 'create') {
+      if (!guruPribadiId) {
+        setErrorMessage('Pilih guru yang menarik tabungan.');
+        return;
+      }
+      if (!nominal || nominal <= 0 || !draftNote.trim()) {
+        setErrorMessage('Nominal harus diisi dan keterangan tidak boleh kosong.');
+        return;
+      }
+      if (saving) return;
+      setSaving(true);
+      try {
+        await contributionsApi.create({
+          studentId: guruPribadiId,
+          contributionType: guruTabunganSource === 'bulanan' ? 'tarik_guru_bulanan' : 'tarik_guru_tw',
+          date: draftDate,
+          nominal,
+          note: draftNote.trim(),
+        } as any);
+        dispatchAppEvent(APP_DATA_UPDATED_EVENT);
+        setGuruPribadiId('');
+        closeSheet();
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'Gagal menyimpan penarikan.');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     let noteToSave = draftNote;
     if (mode === 'guru' && draftType === 'Pengeluaran') {
       const prefix = guruTabunganSource === 'bulanan' ? '[Bulanan]' : '[TW]';
@@ -333,6 +370,21 @@ export function FinancePage() {
                   <button type="button" onClick={() => setGuruKolektif(true)} className={`h-11 rounded-xl text-sm font-semibold ${guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Kolektif (÷9)</button>
                   <button type="button" onClick={() => setGuruKolektif(false)} className={`h-11 rounded-xl text-sm font-semibold ${!guruKolektif ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Pribadi</button>
                 </div>
+                {!guruKolektif && formMode === 'create' && (
+                  <>
+                    <select
+                      value={guruPribadiId}
+                      onChange={(event) => setGuruPribadiId(event.target.value)}
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base outline-none ring-brand-200 focus:border-brand-500 focus:ring-4"
+                    >
+                      <option value="">Pilih guru</option>
+                      {guruList.map((g) => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-500">Pribadi: mengurangi tabungan guru yang dipilih saja, tercatat di daftar Penarikan pada halaman Iuran.</p>
+                  </>
+                )}
                 {guruKolektif && <p className="text-xs text-slate-500">Kolektif: nominal akan dibagi rata {isKwaru ? 'per ibu-ibu' : 'per guru'} dan masuk {isKwaru ? 'Rekap Ibu-ibu' : 'Rekap Guru'} sebagai pengurang saldo.</p>}
               </label>
             </>
