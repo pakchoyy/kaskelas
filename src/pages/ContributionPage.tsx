@@ -4,6 +4,7 @@ import { PageShell } from '../components/PageShell';
 import { BottomSheet } from '../components/BottomSheet';
 import { NominalStepper } from '../components/NominalStepper';
 import { NotesSection } from '../components/NotesSection';
+import { GuruPenarikanCard } from '../components/GuruPenarikanCard';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useAppMode } from '../hooks/useAppMode';
@@ -478,6 +479,11 @@ export function ContributionPage() {
     const total = guruTwRecords.reduce((sum, c) => sum + c.nominal, 0);
     return { paidCount: guruTwRecords.length, total };
   }, [guruTwRecords]);
+
+  // Penarikan tabungan guru (tipe terpisah, tanpa periode: tampil semua)
+  const guruTarikBulanan = useContributions('tarik-guru-bulanan', {});
+  const guruTarikTw = useContributions('tarik-guru-tw', {});
+  const guruOptions = useMemo(() => sortByName(students).map((g) => ({ id: g.id, name: g.name })), [students]);
 
   useEffect(() => {
     const next: Record<string, string> = {};
@@ -1535,6 +1541,15 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruBulananStats.total)}</p></div>
               </div>
             </div>
+            <GuruPenarikanCard
+              title="Penarikan Tabungan Bulanan"
+              gurus={guruOptions}
+              records={guruTarikBulanan.contributions}
+              loading={guruTarikBulanan.loading}
+              error={guruTarikBulanan.error}
+              onAdd={(id, nominal, date, note) => guruTarikBulanan.addContribution(id, nominal, date, undefined, undefined, note)}
+              onRemove={guruTarikBulanan.removeContribution}
+            />
             <button type="button" onClick={handleGuruBulananSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>
@@ -1580,6 +1595,15 @@ export function ContributionPage() {
                 <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruTwStats.total)}</p></div>
               </div>
             </div>
+            <GuruPenarikanCard
+              title="Penarikan Tabungan TW"
+              gurus={guruOptions}
+              records={guruTarikTw.contributions}
+              loading={guruTarikTw.loading}
+              error={guruTarikTw.error}
+              onAdd={(id, nominal, date, note) => guruTarikTw.addContribution(id, nominal, date, undefined, undefined, note)}
+              onRemove={guruTarikTw.removeContribution}
+            />
             <button type="button" onClick={handleGuruTwSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
             <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
           </>

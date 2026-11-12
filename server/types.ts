@@ -10,7 +10,7 @@ export type Student = {
   updatedAt: string;
 };
 
-export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' | 'pisangisasi';
+export type ContributionType = 'kas_kelas' | 'amal_jumat' | 'paguyuban_ngaji' | 'tabungan' | 'lks' | 'tabungan_guru_bulanan' | 'tabungan_guru_tw' | 'ibu_kompor' | 'ibu_kas' | 'triwulan_jamaah' | 'pisangisasi' | 'tarik_guru_bulanan' | 'tarik_guru_tw';
 
 export type Contribution = {
   id: string;

@@ -13,6 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isGuruType = contributionType === 'tabungan_guru_bulanan' || contributionType === 'tabungan_guru_tw';
     const categoryFilter = isGuruType ? 'guru' : 'siswa';
     const scope = parseQueryParam(req.query.scope) || 'kaskelas';
+    // Penarikan guru disimpan sebagai tipe terpisah dan mengurangi total tiap guru
+    const tarikType = contributionType === 'tabungan_guru_bulanan' ? 'tarik_guru_bulanan' : contributionType === 'tabungan_guru_tw' ? 'tarik_guru_tw' : null;
     
     // Get all active students with their payment stats (filter by kategori + scope)
     const perStudent = await query<{
@@ -25,16 +27,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `SELECT 
         s.id,
         s.name,
-        COALESCE(COUNT(c.id), 0)::text as "paidDays",
-        COALESCE(SUM(c.nominal), 0)::text as total,
+        COALESCE(COUNT(c.id) FILTER (WHERE c.contribution_type = $1), 0)::text as "paidDays",
+        COALESCE(SUM(CASE WHEN c.contribution_type = $1 THEN c.nominal ELSE -c.nominal END), 0)::text as total,
         s.blok
       FROM students s
       LEFT JOIN contributions c ON s.id = c.student_id 
-        AND c.contribution_type = $1
+        AND (c.contribution_type = $1 OR c.contribution_type::text = $4::text)
       WHERE s.active = true AND s.category = $2 AND s.scope = $3
       GROUP BY s.id, s.name, s.blok
       ORDER BY s.name`,
-      [contributionType, categoryFilter, scope]
+      [contributionType, categoryFilter, scope, tarikType]
     );
     
     // Add row numbers

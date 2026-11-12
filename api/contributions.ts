@@ -109,7 +109,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     return sendError(res, 'Student ID is required');
   }
   
-  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas', 'triwulan_jamaah', 'pisangisasi'].includes(contributionType)) {
+  if (!contributionType || !['kas_kelas', 'amal_jumat', 'paguyuban_ngaji', 'tabungan', 'lks', 'tabungan_guru_bulanan', 'tabungan_guru_tw', 'ibu_kompor', 'ibu_kas', 'triwulan_jamaah', 'pisangisasi', 'tarik_guru_bulanan', 'tarik_guru_tw'].includes(contributionType)) {
     return sendError(res, 'Valid contribution type is required');
   }
   
@@ -170,6 +170,23 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     }
     if (typeof nominal !== 'number' || nominal <= 0) {
       return sendError(res, 'Tabungan Guru TW nominal must be positive');
+    }
+  }
+
+  const isTarikGuru = contributionType === 'tarik_guru_bulanan' || contributionType === 'tarik_guru_tw';
+  if (isTarikGuru) {
+    if (typeof note !== 'string' || note.trim().length === 0) {
+      return sendError(res, 'Keperluan penarikan wajib diisi');
+    }
+    const setoranType = contributionType === 'tarik_guru_bulanan' ? 'tabungan_guru_bulanan' : 'tabungan_guru_tw';
+    const saldo = await queryOne<{ saldo: string }>(
+      `SELECT COALESCE(SUM(CASE WHEN contribution_type::text = $2 THEN nominal ELSE -nominal END), 0)::text as saldo
+       FROM contributions
+       WHERE student_id = $1 AND contribution_type::text IN ($2, $3)`,
+      [studentId, setoranType, contributionType]
+    );
+    if (nominal > parseInt(saldo?.saldo || '0', 10)) {
+      return sendError(res, 'Penarikan melebihi saldo tabungan guru');
     }
   }
 
@@ -277,7 +294,7 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
         note,
         created_at as "createdAt", 
         updated_at as "updatedAt"`,
-      [id, studentId, contributionType, date, nominal, periodMonth || null, periodYear || null, noteValue, now, now]
+      [id, studentId, contributionType, date, nominal, isTarikGuru ? null : periodMonth || null, isTarikGuru ? null : periodYear || null, noteValue, now, now]
     );
     
     sendSuccess(res, contribution, 'Contribution created successfully');
