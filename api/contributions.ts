@@ -3,6 +3,8 @@ import { query, queryOne, withTransaction } from '../server/db.js';
 import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, parseQueryParamInt, isValidDate, requireKey } from '../server/utils.js';
 import type { Contribution, ContributionType } from '../server/types.js';
 
+let tarikEnumReady = false;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!requireKey(req, res)) return;
   try {
@@ -183,6 +185,13 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
   if (isTarikGuru) {
     if (typeof note !== 'string' || note.trim().length === 0) {
       return sendError(res, 'Keperluan penarikan wajib diisi');
+    }
+    // Migrasi 020 otomatis (aman diulang): nilai enum harus ada dan ter-commit
+    // sebelum dipakai di transaksi di bawah.
+    if (!tarikEnumReady) {
+      await query(`ALTER TYPE contribution_type ADD VALUE IF NOT EXISTS 'tarik_guru_bulanan'`);
+      await query(`ALTER TYPE contribution_type ADD VALUE IF NOT EXISTS 'tarik_guru_tw'`);
+      tarikEnumReady = true;
     }
     // Cek saldo dan simpan dalam satu transaksi; baris guru dikunci supaya
     // dua penarikan bersamaan tidak bisa sama-sama lolos.
