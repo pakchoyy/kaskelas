@@ -5,6 +5,7 @@ import { BottomSheet } from '../components/BottomSheet';
 import { NominalStepper } from '../components/NominalStepper';
 import { NotesSection } from '../components/NotesSection';
 import { GuruPenarikanCard } from '../components/GuruPenarikanCard';
+import { PeriodPaymentSection } from '../components/PeriodPaymentSection';
 import { useAppData } from '../hooks/useAppData';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useAppMode } from '../hooks/useAppMode';
@@ -16,7 +17,6 @@ import { isKwaru } from '../lib/appScope';
 import { letterFilterOptions, matchesLetterFilter, sortByName, type LetterFilter } from '../lib/nameFilters';
 import { formatCurrency } from '../lib/format';
 import { formatDisplayDate, formatWeekday, todayIsoDate, shiftIsoDate } from '../lib/date';
-import { requestSync } from '../lib/sync';
 
 type ContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas' | 'triwulan-jamaah' | 'pisangisasi';
 type WeekDayKey = 'senin' | 'selasa' | 'rabu' | 'kamis';
@@ -659,7 +659,6 @@ export function ContributionPage() {
 
   const handleKasKelasSave = () => {
     saveCurrentState();
-    requestSync();
   };
 
   const handleEditNominalOpen = () => {
@@ -705,7 +704,6 @@ export function ContributionPage() {
       if (failed.length > 0) {
         alert(`Gagal menyimpan untuk: ${failed.join(', ')}. Coba lagi.`);
       } else {
-        requestSync();
       }
     } catch (err) {
       console.error('Failed to save amal jumat:', err);
@@ -1504,43 +1502,23 @@ export function ContributionPage() {
 
         {/* MODE TABUNGAN GURU BULANAN */}
         {contributionType === 'tabungan-guru-bulanan' && (
-          <>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <h3 className="text-sm font-semibold text-slate-900">Tabungan Guru Bulanan</h3>
-              <div className="mt-2 flex items-center justify-between">
-                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronLeft className="h-5 w-5" strokeWidth={2} /></button>
-                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
-                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-500">Iuran per guru</p>
-                <p className="text-base font-semibold text-slate-900">{formatCurrency(guruBulananNominal)}</p>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {guruBulananLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
-                <div className="space-y-2">
-                  {studentsFiltered.map((student, index) => {
-                    const isPaid = hasGuruBulananPaid(student.id);
-                    return (
-                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => handleGuruBulananCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
-                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                        </div>
-                        <NominalStepper value={guruBulananNominals[student.id] || ''} onChange={(v) => handleGuruBulananChange(student.id, v)} />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <div className="flex items-center justify-between">
-                <div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{guruBulananStats.paidCount} guru</p></div>
-                <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruBulananStats.total)}</p></div>
-              </div>
-            </div>
+          <PeriodPaymentSection
+            title="Tabungan Guru Bulanan"
+            periodLabel={monthInfo.monthName}
+            nominalLabel="Iuran per guru"
+            nominal={guruBulananNominal}
+            unit="guru"
+            emptyText="Belum ada guru terdaftar."
+            loading={guruBulananLoading}
+            people={studentsFiltered}
+            isPaid={hasGuruBulananPaid}
+            onToggle={handleGuruBulananCheckToggle}
+            stepper={{ value: (id) => guruBulananNominals[id] || '', onChange: handleGuruBulananChange }}
+            stats={guruBulananStats}
+            onPrev={handlePrevPeriod}
+            onNext={handleNextPeriod}
+            onSave={handleGuruBulananSave}
+          >
             <GuruPenarikanCard
               title="Penarikan Tabungan Bulanan"
               gurus={guruOptions}
@@ -1550,51 +1528,29 @@ export function ContributionPage() {
               onAdd={(id, nominal, date, note) => guruTarikBulanan.addContribution(id, nominal, date, undefined, undefined, note)}
               onRemove={guruTarikBulanan.removeContribution}
             />
-            <button type="button" onClick={handleGuruBulananSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
-            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
-          </>
+          </PeriodPaymentSection>
         )}
 
         {/* MODE TABUNGAN GURU TW */}
         {contributionType === 'tabungan-guru-tw' && (
-          <>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <h3 className="text-sm font-semibold text-slate-900">Tabungan Guru TW</h3>
-              <div className="mt-2 flex items-center justify-between">
-                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronLeft className="h-5 w-5" strokeWidth={2} /></button>
-                <p className="text-sm font-medium text-slate-700">TW {twPeriod.triwulan} - {twPeriod.year}</p>
-                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"><ChevronRight className="h-5 w-5" strokeWidth={2} /></button>
-              </div>
-              <p className="mt-1 text-center text-xs text-slate-400">{twPeriod.triwulan === 1 ? 'Jan - Mar' : twPeriod.triwulan === 2 ? 'Apr - Jun' : twPeriod.triwulan === 3 ? 'Jul - Sep' : 'Okt - Des'}</p>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-500">Iuran per guru</p>
-                <p className="text-base font-semibold text-slate-900">{formatCurrency(guruTwNominal)}</p>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {guruTwLoading ? (<p className="py-6 text-center text-sm text-slate-500">Memuat...</p>) : studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada guru terdaftar.</p>) : (
-                <div className="space-y-2">
-                  {studentsFiltered.map((student, index) => {
-                    const isPaid = hasGuruTwPaid(student.id);
-                    return (
-                      <div key={student.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}>
-                        <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => handleGuruTwCheckToggle(student.id)} className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</button>
-                          <p className="text-sm font-medium text-slate-900">{student.name}</p>
-                        </div>
-                        <NominalStepper value={guruTwNominals[student.id] || ''} onChange={(v) => handleGuruTwChange(student.id, v)} />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <div className="flex items-center justify-between">
-                <div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{guruTwStats.paidCount} guru</p></div>
-                <div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(guruTwStats.total)}</p></div>
-              </div>
-            </div>
+          <PeriodPaymentSection
+            title="Tabungan Guru TW"
+            periodLabel={`TW ${twPeriod.triwulan} - ${twPeriod.year}`}
+            periodHint={['Jan - Mar', 'Apr - Jun', 'Jul - Sep', 'Okt - Des'][twPeriod.triwulan - 1]}
+            nominalLabel="Iuran per guru"
+            nominal={guruTwNominal}
+            unit="guru"
+            emptyText="Belum ada guru terdaftar."
+            loading={guruTwLoading}
+            people={studentsFiltered}
+            isPaid={hasGuruTwPaid}
+            onToggle={handleGuruTwCheckToggle}
+            stepper={{ value: (id) => guruTwNominals[id] || '', onChange: handleGuruTwChange }}
+            stats={guruTwStats}
+            onPrev={handlePrevPeriod}
+            onNext={handleNextPeriod}
+            onSave={handleGuruTwSave}
+          >
             <GuruPenarikanCard
               title="Penarikan Tabungan TW"
               gurus={guruOptions}
@@ -1604,59 +1560,43 @@ export function ContributionPage() {
               onAdd={(id, nominal, date, note) => guruTarikTw.addContribution(id, nominal, date, undefined, undefined, note)}
               onRemove={guruTarikTw.removeContribution}
             />
-            <button type="button" onClick={handleGuruTwSave} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white"><Save className="h-5 w-5" strokeWidth={2} />Simpan</button>
-            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
-          </>
+          </PeriodPaymentSection>
         )}
 
         {/* MODE IBU KOMPOR */}
         {contributionType === 'ibu-kompor' && (
-          <>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <h3 className="text-sm font-semibold text-slate-900">Kompor</h3>
-              <div className="mt-2 flex items-center justify-between">
-                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
-                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
-                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
-                <div className="space-y-2">{studentsFiltered.map((student, index) => {
-                  const isPaid = hasIbuKomporPaid(student.id);
-                  return (<button key={student.id} type="button" onClick={() => toggleIbuKompor(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
-                })}</div>
-              )}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{ibuKomporStats.paidCount} ibu</p></div><div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(ibuKomporStats.total)}</p></div></div></div>
-            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
-          </>
+          <PeriodPaymentSection
+            title="Kompor"
+            periodLabel={monthInfo.monthName}
+            nominalLabel="Iuran per ibu"
+            nominal={ibuNominal}
+            unit="ibu"
+            emptyText="Belum ada ibu terdaftar."
+            people={studentsFiltered}
+            isPaid={hasIbuKomporPaid}
+            onToggle={(id) => toggleIbuKompor(id, ibuNominal)}
+            stats={ibuKomporStats}
+            onPrev={handlePrevPeriod}
+            onNext={handleNextPeriod}
+          />
         )}
 
         {/* MODE IBU KAS */}
         {contributionType === 'ibu-kas' && (
-          <>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              <h3 className="text-sm font-semibold text-slate-900">Kas Ibu-ibu</h3>
-              <div className="mt-2 flex items-center justify-between">
-                <button type="button" onClick={handlePrevPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronLeft className="h-5 w-5" /></button>
-                <p className="text-sm font-medium text-slate-700">{monthInfo.monthName}</p>
-                <button type="button" onClick={handleNextPeriod} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><ChevronRight className="h-5 w-5" /></button>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">Iuran per ibu</p><p className="text-base font-semibold text-slate-900">{formatCurrency(ibuNominal)}</p></div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-              {studentsFiltered.length === 0 ? (<p className="py-6 text-center text-sm text-slate-500">Belum ada ibu terdaftar.</p>) : (
-                <div className="space-y-2">{studentsFiltered.map((student, index) => {
-                  const isPaid = hasIbuKasPaid(student.id);
-                  return (<button key={student.id} type="button" onClick={() => toggleIbuKas(student.id, ibuNominal)} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-slate-100 p-3 text-left ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}`}><p className="text-sm font-medium text-slate-900">{student.name}</p><div className={`flex h-7 w-7 items-center justify-center rounded-full ${isPaid ? 'bg-brand-600 text-white' : 'border-2 border-slate-300 text-slate-300'}`}>{isPaid && <Check className="h-4 w-4" strokeWidth={3} />}</div></button>);
-                })}</div>
-              )}
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs font-medium text-slate-500">Sudah bayar</p><p className="mt-1 text-base font-semibold text-slate-900">{ibuKasStats.paidCount} ibu</p></div><div className="text-right"><p className="text-xs font-medium text-slate-500">Total</p><p className="mt-1 text-lg font-semibold text-brand-700">{formatCurrency(ibuKasStats.total)}</p></div></div></div>
-            <div className="flex items-center justify-center gap-6 py-1"><button type="button" onClick={handlePrevPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronLeft className="h-5 w-5" /></button><button type="button" onClick={handleNextPeriod} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft border border-slate-200 text-slate-600"><ChevronRight className="h-5 w-5" /></button></div>
-          </>
+          <PeriodPaymentSection
+            title="Kas Ibu-ibu"
+            periodLabel={monthInfo.monthName}
+            nominalLabel="Iuran per ibu"
+            nominal={ibuNominal}
+            unit="ibu"
+            emptyText="Belum ada ibu terdaftar."
+            people={studentsFiltered}
+            isPaid={hasIbuKasPaid}
+            onToggle={(id) => toggleIbuKas(id, ibuNominal)}
+            stats={ibuKasStats}
+            onPrev={handlePrevPeriod}
+            onNext={handleNextPeriod}
+          />
         )}
 
         {/* MODE TRIWULAN JAMAAH */}

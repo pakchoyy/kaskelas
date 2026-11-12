@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { useAppMode } from '../hooks/useAppMode';
 import { usePwaInstall } from '../hooks/usePwaInstall';
-import { isKwaru } from '../lib/appScope';
-import { studentsApi, contributionsApi, financeApi } from '../services/api';
+import { isKwaru, appScope } from '../lib/appScope';
+import { studentsApi, contributionsApi, financeApi, apiFetch } from '../services/api';
 
 export function SettingsPage() {
   const { settings, setSettings, updateDailyCashNominal } = useAppSettings();
@@ -53,7 +53,7 @@ export function SettingsPage() {
       setBackupMessage('Backup JSON berhasil diunduh.');
       // juga trigger backup API untuk kirim email jika ada email
       if (settings.backupEmail) {
-        await fetch('/api/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: settings.backupEmail, mode }) });
+        await apiFetch('/api/backup', { method: 'POST', body: JSON.stringify({ email: settings.backupEmail, mode, scope: appScope }) });
         setBackupMessage((m) => m + ' Email backup juga dikirim.');
       }
     } catch (err) {

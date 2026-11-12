@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { contributionsApi, settingsApi, type Contribution, type ContributionType } from '../services/api';
 import { mapContributionTypeToApi } from '../lib/apiHelpers';
 import { dispatchAppEvent, APP_DATA_UPDATED_EVENT } from '../lib/events';
+import { todayIsoDate } from '../lib/date';
 
 type FrontendContributionType = 'kas-kelas' | 'amal-jumat' | 'paguyuban-ngaji' | 'tabungan' | 'lks' | 'pisangisasi' | 'tabungan-guru-bulanan' | 'tabungan-guru-tw' | 'ibu-kompor' | 'ibu-kas' | 'triwulan-jamaah' | 'tarik-guru-bulanan' | 'tarik-guru-tw';
 
@@ -95,7 +96,7 @@ export function useContributions(
         const data: any = {
           studentId,
           contributionType: apiType,
-          date: date || dateOrPeriod.date || new Date().toISOString().split('T')[0],
+          date: date || dateOrPeriod.date || todayIsoDate(),
           nominal,
         };
 

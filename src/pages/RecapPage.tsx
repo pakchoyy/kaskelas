@@ -611,14 +611,16 @@ export function RecapPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(() => {
+                  // Bagi rata tanpa selisih: sisa rupiah diberikan ke siswa paling atas
                   const n = filteredRecap.perStudent.length;
-                  const bagianPemasukan = n > 0 ? Math.round(recap.totalPemasukanLain / n) : 0;
-                  const bagianPengeluaran = n > 0 ? Math.round(recap.totalPengeluaran / n) : 0;
-                  const totalAkumulasi = bagianPemasukan - bagianPengeluaran;
+                  const share = (total: number, index: number) =>
+                    n > 0 ? Math.floor(total / n) + (index < total % n ? 1 : 0) : 0;
                   return (
                     <>
                       {filteredRecap.perStudent.map((student, index) => {
-                        const kasAkhir = student.total + totalAkumulasi;
+                        const bagianPemasukan = share(recap.totalPemasukanLain, index);
+                        const bagianPengeluaran = share(recap.totalPengeluaran, index);
+                        const kasAkhir = student.total + bagianPemasukan - bagianPengeluaran;
                         return (
                           <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-emerald-50'}>
                             <td className="px-4 py-3 text-slate-500">{student.number}</td>

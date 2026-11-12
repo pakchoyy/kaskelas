@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { query, queryOne } from '../server/db.js';
-import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, isValidDate } from '../server/utils.js';
+import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, isValidDate, requireKey } from '../server/utils.js';
 import type { FinanceTransaction, TransactionType } from '../server/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!requireKey(req, res)) return;
   try {
     const { method } = req;
     

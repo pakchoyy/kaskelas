@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { queryOne } from '../server/db.js';
-import { sendSuccess, sendError, handleError, createId, parseQueryParam } from '../server/utils.js';
+import { sendSuccess, sendError, handleError, createId, parseQueryParam, requireKey } from '../server/utils.js';
 
 type HandoverMarker = {
   id: string;
@@ -12,6 +12,7 @@ type HandoverMarker = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!requireKey(req, res)) return;
   try {
     if (req.method === 'GET') {
       return await handleGetMarker(req, res);

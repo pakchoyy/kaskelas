@@ -78,7 +78,7 @@ export function useAppData() {
       
       const [studentsData, contributionsData, financeData] = await Promise.all([
         studentsApi.getAll(),
-        contributionsApi.getAll(),
+        contributionsApi.getAll({ contributionTypes: ['kas_kelas', 'tabungan', 'pisangisasi'] }),
         financeApi.getAll(),
       ]);
       
@@ -227,7 +227,7 @@ export function useAppData() {
       ]);
 
       // Reload all contributions from API to ensure consistency
-      const allContributions = await contributionsApi.getAll();
+      const allContributions = await contributionsApi.getAll({ contributionTypes: ['kas_kelas', 'tabungan', 'pisangisasi'] });
       setContributions(allContributions);
 
       dispatchAppEvent(APP_DATA_UPDATED_EVENT);

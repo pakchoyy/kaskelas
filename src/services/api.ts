@@ -11,17 +11,58 @@ type ApiResponse<T = any> = {
   message?: string;
 };
 
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
+const APP_KEY_STORAGE = 'app-key';
+
+function readAppKey(): string {
+  try {
+    return localStorage.getItem(APP_KEY_STORAGE) || '';
+  } catch {
+    return '';
+  }
+}
+
+let keyPrompt: Promise<string | null> | null = null;
+
+// Semua permintaan yang ditolak berbagi satu prompt, supaya kunci hanya diminta sekali.
+function askAppKey(): Promise<string | null> {
+  if (!keyPrompt) {
+    keyPrompt = Promise.resolve().then(() => {
+      const key = window.prompt('Masukkan kunci akses aplikasi:')?.trim() || null;
+      if (key) {
+        try {
+          localStorage.setItem(APP_KEY_STORAGE, key);
+        } catch {
+          // abaikan: kunci tetap dipakai untuk permintaan yang sedang berjalan
+        }
+      }
+      keyPrompt = null;
+      return key;
+    });
+  }
+  return keyPrompt;
+}
+
+/** fetch ke API dengan kunci akses; kalau ditolak (401), minta kunci sekali lalu coba lagi. */
+export async function apiFetch(url: string, options?: RequestInit, retried = false): Promise<Response> {
+  const sentKey = readAppKey();
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'x-app-key': sentKey,
       ...options?.headers,
     },
   });
-  
+  if (response.status === 401 && !retried && typeof window !== 'undefined') {
+    // Kunci mungkin baru saja diisi oleh permintaan lain: coba dulu tanpa bertanya lagi
+    const key = readAppKey() !== sentKey ? readAppKey() : await askAppKey();
+    if (key) return apiFetch(url, options, true);
+  }
+  return response;
+}
+
+async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const response = await apiFetch(`${API_BASE_URL}${endpoint}`, options);
   const result: ApiResponse<T> = await response.json();
   
   if (!result.success) {
@@ -195,6 +236,7 @@ export const studentsApi = {
 export const contributionsApi = {
   async getAll(filters?: {
     contributionType?: ContributionType;
+    contributionTypes?: ContributionType[];
     studentId?: string;
     date?: string;
     dateFrom?: string;
@@ -205,6 +247,7 @@ export const contributionsApi = {
     const params = new URLSearchParams();
     
     if (filters?.contributionType) params.set('contribution_type', filters.contributionType);
+    filters?.contributionTypes?.forEach((t) => params.append('contribution_type', t));
     if (filters?.studentId) params.set('student_id', filters.studentId);
     if (filters?.date) params.set('date', filters.date);
     if (filters?.dateFrom) params.set('date_from', filters.dateFrom);

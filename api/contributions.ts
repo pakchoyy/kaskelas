@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, queryOne } from '../server/db.js';
-import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, parseQueryParamInt, isValidDate } from '../server/utils.js';
+import { query, queryOne, withTransaction } from '../server/db.js';
+import { sendSuccess, sendError, sendNotFound, handleError, createId, parseQueryParam, parseQueryParamArray, parseQueryParamInt, isValidDate, requireKey } from '../server/utils.js';
 import type { Contribution, ContributionType } from '../server/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!requireKey(req, res)) return;
   try {
     const { method } = req;
     
@@ -24,7 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleGetContributions(req: VercelRequest, res: VercelResponse) {
-  const contributionType = parseQueryParam(req.query.contribution_type) as ContributionType | undefined;
+  const contributionTypes = parseQueryParamArray(req.query.contribution_type);
+  const contributionType = contributionTypes[0] as ContributionType | undefined;
   const studentId = parseQueryParam(req.query.student_id);
   const dateFrom = parseQueryParam(req.query.date_from);
   const dateTo = parseQueryParam(req.query.date_to);
@@ -53,7 +55,11 @@ async function handleGetContributions(req: VercelRequest, res: VercelResponse) {
   const params: any[] = [scope];
   let paramIndex = 2;
   
-  if (contributionType) {
+  if (contributionTypes.length > 1) {
+    sql += ` AND c.contribution_type::text = ANY($${paramIndex}::text[])`;
+    params.push(contributionTypes);
+    paramIndex++;
+  } else if (contributionType) {
     sql += ` AND c.contribution_type = $${paramIndex}`;
     params.push(contributionType);
     paramIndex++;
@@ -178,16 +184,33 @@ async function handleCreateContribution(req: VercelRequest, res: VercelResponse)
     if (typeof note !== 'string' || note.trim().length === 0) {
       return sendError(res, 'Keperluan penarikan wajib diisi');
     }
+    // Cek saldo dan simpan dalam satu transaksi; baris guru dikunci supaya
+    // dua penarikan bersamaan tidak bisa sama-sama lolos.
     const setoranType = contributionType === 'tarik_guru_bulanan' ? 'tabungan_guru_bulanan' : 'tabungan_guru_tw';
-    const saldo = await queryOne<{ saldo: string }>(
-      `SELECT COALESCE(SUM(CASE WHEN contribution_type::text = $2 THEN nominal ELSE -nominal END), 0)::text as saldo
-       FROM contributions
-       WHERE student_id = $1 AND contribution_type::text IN ($2, $3)`,
-      [studentId, setoranType, contributionType]
-    );
-    if (nominal > parseInt(saldo?.saldo || '0', 10)) {
-      return sendError(res, 'Penarikan melebihi saldo tabungan guru');
-    }
+    const tarikId = createId('contrib');
+    const tarikNow = new Date().toISOString();
+    const inserted = await withTransaction(async (q) => {
+      const locked = await q(`SELECT id FROM students WHERE id = $1 FOR UPDATE`, [studentId]);
+      if (locked.length === 0) return 'no-student' as const;
+      const [saldo] = await q<{ saldo: string }>(
+        `SELECT COALESCE(SUM(CASE WHEN contribution_type::text = $2 THEN nominal ELSE -nominal END), 0)::text as saldo
+         FROM contributions
+         WHERE student_id = $1 AND contribution_type::text IN ($2, $3)`,
+        [studentId, setoranType, contributionType]
+      );
+      if (nominal > parseInt(saldo?.saldo || '0', 10)) return 'over' as const;
+      const [row] = await q<Contribution>(
+        `INSERT INTO contributions (id, student_id, contribution_type, date, nominal, period_month, period_year, note, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NULL, NULL, $6, $7, $7)
+         RETURNING id, student_id as "studentId", contribution_type as "contributionType", date::text as date, nominal,
+           period_month as "periodMonth", period_year as "periodYear", note, created_at as "createdAt", updated_at as "updatedAt"`,
+        [tarikId, studentId, contributionType, date, nominal, note.trim(), tarikNow]
+      );
+      return row;
+    });
+    if (inserted === 'no-student') return sendError(res, 'Guru tidak ditemukan', 404);
+    if (inserted === 'over') return sendError(res, 'Penarikan melebihi saldo tabungan guru');
+    return sendSuccess(res, inserted, 'Contribution created successfully');
   }
 
   if (contributionType === 'ibu_kompor' || contributionType === 'ibu_kas') {

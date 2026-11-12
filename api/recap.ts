@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { query, queryOne } from '../server/db.js';
-import { sendSuccess, handleError, parseQueryParam } from '../server/utils.js';
+import { sendSuccess, handleError, parseQueryParam, requireKey } from '../server/utils.js';
 import type { RecapData } from '../server/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!requireKey(req, res)) return;
   try {
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
