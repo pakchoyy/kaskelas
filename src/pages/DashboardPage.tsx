@@ -12,6 +12,7 @@ export function DashboardPage() {
   const { mode, setMode } = useAppMode();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [metricsGuru, setMetricsGuru] = useState<DashboardMetrics | null>(null);
+  const [metricsSiswa, setMetricsSiswa] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,7 @@ export function DashboardPage() {
         if (mine !== seq) return; // abaikan jawaban lama
         setMetrics(mode === 'guru' ? guruData : siswaData);
         setMetricsGuru(guruData);
+        setMetricsSiswa(siswaData);
       } catch (err) {
         if (mine !== seq) return;
         const message = err instanceof Error ? err.message : 'Failed to load dashboard';
@@ -98,7 +100,7 @@ export function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setMode('siswa')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'siswa' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
             <p className={`text-xs font-semibold ${mode === 'siswa' ? 'text-brand-700' : 'text-slate-500'}`}>{isKwaru ? 'Jamaah' : 'Siswa'}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.totalStudents}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{metricsSiswa?.totalStudents ?? 0}</p>
             <p className="text-xs text-slate-500">orang</p>
           </button>
           <button type="button" onClick={() => setMode('guru')} className={`rounded-2xl border p-4 text-left shadow-soft transition ${mode === 'guru' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}>
@@ -108,7 +110,10 @@ export function DashboardPage() {
           </button>
         </div>
 
-        <InfoCard title={isKwaru && mode === 'siswa' ? 'Total Sodaqoh' : 'Saldo Kas'} value={formatCurrency(metrics.saldo)} tone="brand" />
+        <InfoCard title={isKwaru && mode === 'siswa' ? 'Total Sodaqoh' : mode === 'guru' ? 'Saldo Guru' : 'Saldo Kas'} value={formatCurrency(mode === 'guru'
+          // Saldo guru = tabungan bulanan + TW + pemasukan lain - pengeluaran (sama dengan Rekap)
+          ? ((metrics as any).totalTabunganGuruBulanan || 0) + ((metrics as any).totalTabunganGuruTw || 0) + metrics.totalPemasukanLain - metrics.totalPengeluaran
+          : metrics.saldo)} tone="brand" />
 
         <div className="grid grid-cols-2 gap-3">
           <InfoCard title={mode === 'guru' ? (isKwaru ? 'Ibu-ibu Aktif' : 'Guru Aktif') : (isKwaru ? 'Jamaah Aktif' : 'Siswa Aktif')} value={metrics.totalStudents.toString()} />
